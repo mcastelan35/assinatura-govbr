@@ -164,6 +164,10 @@ def cmd_diagnostico(args):
     except Exception as e:
         ok = False
         print(f"VALIDAR ({iti.BASE}): inacessível ({e})")
+    else:
+        api_ok, mensagem = iti.testar_api()
+        ok = ok and api_ok
+        print(f"Teste da API (arquivo de teste, sem dados pessoais): {mensagem}")
     return 0 if ok else 1
 
 
@@ -205,10 +209,14 @@ def cmd_validar(args):
         if destacado and not destacado.is_file():
             _abortar(f"arquivo não encontrado: {destacado}")
         try:
-            linha = processo.validar_um(arquivo, lote, modo, idioma, destacado)
-        except iti.ErroValidar as e:
-            linha = processo.linha_csv(arquivo, resultado="ERRO", detalhe=str(e))
-        lote.registrar(processo.sha256(arquivo.read_bytes()), linha)
+            with processo.Trava(saida):
+                try:
+                    linha = processo.validar_um(arquivo, lote, modo, idioma, destacado)
+                except iti.ErroValidar as e:
+                    linha = processo.linha_csv(arquivo, resultado="ERRO", detalhe=str(e))
+                lote.registrar(processo.sha256(arquivo.read_bytes()), linha)
+        except iti.ErroValidar as e:  # trava ocupada por outra validação
+            _abortar(str(e))
         _imprimir_linha(linha)
         _painel_estatico(saida, entrada_cfg, recursivo)
         print(f"Pasta de saída: {saida}")
@@ -217,7 +225,10 @@ def cmd_validar(args):
     entrada = Path(entrada_cfg or "")
     if not str(entrada) or str(entrada) == "." or not entrada.is_dir():
         _abortar(f"pasta de entrada não encontrada: {entrada}. Rode 'configurar' ou informe --entrada.")
-    linhas = processo.validar_pasta(entrada, lote, modo, idioma, recursivo, args.refazer)
+    try:
+        linhas = processo.validar_pasta(entrada, lote, modo, idioma, recursivo, args.refazer)
+    except iti.ErroValidar as e:  # trava ocupada por outra validação
+        _abortar(str(e))
 
     contagem = {}
     for l in linhas:

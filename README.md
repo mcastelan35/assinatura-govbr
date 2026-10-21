@@ -38,6 +38,7 @@ Quer ver antes de usar com documentos reais? Diga **"mostre o painel com dados f
 | "valide este arquivo: C:\…\contrato.pdf" | valida um arquivo avulso |
 | "abra o painel de assinaturas" | abre o painel no navegador, com downloads em lote |
 | "gere o dossiê de Fulano" | junta num PDF os dossiês de tudo o que a pessoa assinou |
+| "agende a validação de hora em hora" | cria uma tarefa agendada no app Claude que valida sozinha o que chegar |
 | "valide de novo todos" | revalida, inclusive os já validados |
 | "quero o relatório mesclado" | muda o formato (skill `configurar`) |
 
@@ -70,6 +71,12 @@ _auditoria/                   respostas do ITI, original enviado e resumo de cad
 
 Aberto pelo Claude, o painel roda só neste computador (`127.0.0.1`, protegido por uma chave de acesso). O arquivo `Painel de Assinaturas.html` da pasta de saída mostra as mesmas informações em modo leitura, em qualquer máquina da equipe que veja a pasta pelo Google Drive.
 
+## Validação automática
+
+A skill `agendar` cria uma **tarefa agendada do app Claude para desktop** (por exemplo, de hora em hora em dias úteis) que valida os documentos novos sem ninguém pedir e avisa quando algo sai com ressalvas. A tarefa roda enquanto o app está aberto; se ele estiver fechado no horário, roda quando for aberto.
+
+Com a pasta num Drive compartilhado, vários computadores podem validar: uma trava na pasta de saída impede duas validações ao mesmo tempo, e o registro do que já foi validado é mesclado mesmo quando o Google Drive cria cópias de conflito.
+
 ## Pela linha de comando, sem o Claude
 
 ```bash
@@ -83,11 +90,19 @@ uv run --no-project --python 3.12 --with pypdf --with reportlab validar_govbr.py
 
 Códigos de saída de `validar`: `0` tudo aprovado, `1` alguma ressalva, `2` erro.
 
+## Testes
+
+```bash
+uv run --no-project --python 3.12 --with pytest --with pypdf --with reportlab pytest
+```
+
+Os testes usam um ITI simulado, com respostas no formato real e dados fictícios. O GitHub Actions roda tudo a cada envio, no Windows e no Linux, e toda segunda-feira confere a API de verdade com `govbr/canario.p7s` — um texto fixo assinado com certificado de teste, sem dados pessoais. Se o ITI mudar o portal, o teste semanal falha e o GitHub avisa por e-mail, antes de um lote real dar erro. O comando `diagnostico` faz a mesma conferência na hora.
+
 ## Privacidade e limites
 
 - Os documentos são **enviados ao VALIDAR do ITI**. Pelos [termos do serviço](https://validar.iti.gov.br) (Portaria ITI nº 22/2023), o ITI descarta o arquivo ao final da validação e mostra o CPF dos signatários mascarado. PDFs sem assinatura digital **não** são enviados.
 - Painel, dossiês e planilha ficam na sua pasta de saída: nada é enviado a outro serviço. No Google Drive, as permissões da pasta definem quem vê os dados dos clientes — prefira um Drive compartilhado do escritório.
-- A ferramenta usa a interface interna do portal VALIDAR (a mesma que o site usa). Ela não tem documentação oficial nem garantia de estabilidade: se o ITI mudar o site, a validação pode falhar até o plugin ser atualizado. Nesse caso, valide manualmente em https://validar.iti.gov.br.
+- A ferramenta usa a interface interna do portal VALIDAR (a mesma que o site usa). Ela não tem documentação oficial nem garantia de estabilidade: se o ITI mudar o site, a validação pode falhar até o plugin ser atualizado. Nesse caso, valide manualmente em https://validar.iti.gov.br. O `diagnostico` e o teste semanal detectam essa mudança enviando apenas um arquivo de teste sem dados pessoais.
 - O ITI valida integridade e autoria da assinatura, não o conteúdo do documento. A capa do dossiê é um resumo; o documento oficial é o relatório do ITI que vem logo depois dela.
 - A assinatura GOV.BR é **avançada** (Lei 14.063/2020), não qualificada ICP-Brasil; alguns órgãos exigem a qualificada.
 - No Windows, o aviso de "configuração pendente" no início da conversa usa o Git Bash, que vem com o Claude Code. Sem ele, rode `/assinatura-govbr:configurar` diretamente.

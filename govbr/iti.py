@@ -10,6 +10,7 @@ import time
 import urllib.error
 import urllib.request
 import uuid
+from pathlib import Path
 
 from . import VERSAO
 
@@ -142,6 +143,26 @@ def baixar_pdf(conformidade, idioma="portuga"):
     if not pdf.startswith(b"%PDF"):
         raise ErroValidar("O VALIDAR não devolveu um PDF válido.")
     return pdf
+
+
+CANARIO = Path(__file__).with_name("canario.p7s")
+
+
+def testar_api():
+    """Confere se a API interna do VALIDAR ainda responde como o plugin espera.
+
+    Envia canario.p7s — um texto fixo assinado com certificado de teste, sem
+    dados pessoais. O ITI deve recusá-lo com 406 ("assinatura não reconhecida")
+    e o JSON de sempre. Qualquer outra resposta indica que o portal mudou.
+    Retorna (ok, mensagem).
+    """
+    try:
+        status, dados = validar_arquivo(CANARIO)
+    except ErroValidar as e:
+        return False, f"a API respondeu de forma inesperada ({e})"
+    if status == 406 and dados.get("errorCode") == 406 and dados.get("hash"):
+        return True, "a API responde como esperado"
+    return False, f"a API respondeu HTTP {status} com campos {sorted(dados)[:6]}: o portal pode ter mudado"
 
 
 def acessivel():

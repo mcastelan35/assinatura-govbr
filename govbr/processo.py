@@ -15,6 +15,8 @@ import csv
 import datetime as dt
 import hashlib
 import json
+import os
+import platform
 import re
 import shutil
 import time
@@ -45,13 +47,20 @@ def sha256(dados):
     return hashlib.sha256(dados).hexdigest()
 
 
+# Limites de nome: num Drive compartilhado a pasta-base já ocupa ~75 caracteres e os
+# sufixos ("- Relatório de Conformidade ITI (COM RESSALVAS) (2).pdf") até ~70; com 90
+# para o nome, o caminho fica abaixo dos 260 do Windows sem "caminhos longos" ativado.
+LIMITE_NOME = 90
+LIMITE_PASTA_AUDITORIA = 48
+
+
 def _nome_seguro(texto):
-    return re.sub(r"[^\w.-]+", "_", texto).strip("_")[:80] or "documento"
+    return re.sub(r"[^\w.-]+", "_", texto).strip("_")[:LIMITE_PASTA_AUDITORIA] or "documento"
 
 
 def nome_arquivo(texto):
     """Mantém acentos e espaços; só remove o que o Windows não aceita."""
-    return re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", texto).strip(" .")[:150] or "documento"
+    return re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", texto).strip(" .")[:LIMITE_NOME].rstrip(" .") or "documento"
 
 
 def _salvar_json(pasta, nome, dados):
@@ -292,6 +301,60 @@ def _anexar_csv(caminho, linhas):
         w.writerows(linhas)
 
 
+class Trava:
+    """Impede duas validações ao mesmo tempo na mesma pasta de saída.
+
+    Com a saída num Drive compartilhado, dois computadores (ou o painel e o
+    Claude) poderiam enviar o mesmo documento ao ITI e sobrescrever o registro.
+    A trava é um arquivo em _auditoria; vence sozinha se ficar parada por
+    VALIDADE segundos (ex.: computador desligado no meio de um lote).
+    """
+
+    VALIDADE = 30 * 60
+
+    def __init__(self, saida):
+        self.caminho = Path(saida) / PASTA_AUDITORIA / ".trava"
+
+    def __enter__(self):
+        self.caminho.parent.mkdir(parents=True, exist_ok=True)
+        for _ in range(2):
+            try:
+                fd = os.open(self.caminho, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            except FileExistsError:
+                try:
+                    parada = time.time() - self.caminho.stat().st_mtime
+                    dono = json.loads(self.caminho.read_text(encoding="utf-8"))
+                except (OSError, ValueError):
+                    parada, dono = 0, {}
+                if parada > self.VALIDADE:
+                    self.caminho.unlink(missing_ok=True)
+                    continue
+                raise iti.ErroValidar(
+                    f"Outra validação está em andamento (computador {dono.get('computador', 'desconhecido')}, "
+                    f"desde {dono.get('desde', '?')}). Tente de novo em alguns minutos."
+                ) from None
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                json.dump({"computador": platform.node(), "pid": os.getpid(),
+                           "desde": dt.datetime.now().strftime("%d/%m/%Y %H:%M")}, f)
+            return self
+        raise iti.ErroValidar("Não foi possível obter a trava da pasta de saída.")
+
+    def renovar(self):
+        try:
+            os.utime(self.caminho)
+        except OSError:
+            pass
+
+    def __exit__(self, *exc):
+        self.caminho.unlink(missing_ok=True)
+
+
+def _gravar_json_atomico(caminho, dados):
+    temp = caminho.with_name(caminho.name + ".tmp")
+    temp.write_text(json.dumps(dados, ensure_ascii=False, indent=2), encoding="utf-8")
+    os.replace(temp, caminho)  # o Drive nunca sincroniza um arquivo pela metade
+
+
 class Lote:
     """Registro do que já foi validado (pelo SHA-256) e planilha acumulada."""
 
@@ -300,28 +363,32 @@ class Lote:
         self.auditoria = self.saida / PASTA_AUDITORIA
         self.auditoria.mkdir(parents=True, exist_ok=True)
         self.caminho_registro = self.auditoria / "registro.json"
-        self.registro = ler_registro(self.saida)
 
     def ja_validado(self, hash_):
-        return hash_ in self.registro
+        # Relido a cada consulta: outro computador pode ter validado o documento agora há pouco.
+        return hash_ in ler_registro(self.saida)
 
     def registrar(self, hash_, linha):
         if linha["resultado"] != "ERRO":  # erros são tentados de novo na próxima vez
-            self.registro[hash_] = {
+            registro = ler_registro(self.saida)
+            registro[hash_] = {
                 k: linha[k] for k in ("arquivo", "resultado", "data_validacao", "arquivos_gerados")
             }
-            self.caminho_registro.write_text(
-                json.dumps(self.registro, ensure_ascii=False, indent=2), encoding="utf-8"
-            )
+            _gravar_json_atomico(self.caminho_registro, registro)
         # Grava a cada documento para não perder o progresso se o lote cair.
         _anexar_csv(self.saida / NOME_PLANILHA, [linha])
 
 
 def ler_registro(saida):
-    caminho = Path(saida) / PASTA_AUDITORIA / "registro.json"
-    if caminho.is_file():
-        return json.loads(caminho.read_text(encoding="utf-8"))
-    return {}
+    """registro.json mais as cópias de conflito que o Google Drive cria ("registro (1).json")."""
+    registro = {}
+    # Ordem alfabética põe "registro (1).json" antes de "registro.json": o principal prevalece.
+    for caminho in sorted((Path(saida) / PASTA_AUDITORIA).glob("registro*.json")):
+        try:
+            registro.update(json.loads(caminho.read_text(encoding="utf-8")))
+        except (OSError, ValueError):
+            continue
+    return registro
 
 
 def validar_um(caminho, lote, modo, idioma, destacado=None):
@@ -340,53 +407,96 @@ def listar_pdfs(entrada, recursivo):
     )
 
 
+class CacheHash:
+    """SHA-256 já calculados, por caminho + tamanho + data de modificação.
+
+    Sem isso, cada validação e cada atualização do painel leria de novo todos
+    os PDFs da entrada — no Google Drive em modo "transmitir arquivos", isso é
+    baixar a pasta inteira toda vez. Fica na pasta de configuração deste
+    computador (não no Drive): cada máquina tem o seu, sem conflito de sincronização.
+    """
+
+    def __init__(self):
+        from .config import pasta_config
+
+        self.caminho = pasta_config() / "cache_sha256.json"
+        try:
+            self.dados = json.loads(self.caminho.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            self.dados = {}
+        self.mudou = False
+
+    def sha256(self, arquivo):
+        st = arquivo.stat()
+        chave = str(arquivo.resolve())
+        item = self.dados.get(chave)
+        if item and item.get("tamanho") == st.st_size and item.get("mtime") == st.st_mtime_ns:
+            return item["sha256"]
+        h = sha256(arquivo.read_bytes())
+        self.dados[chave] = {"tamanho": st.st_size, "mtime": st.st_mtime_ns, "sha256": h}
+        self.mudou = True
+        return h
+
+    def salvar(self):
+        if not self.mudou:
+            return
+        try:
+            self.caminho.parent.mkdir(parents=True, exist_ok=True)
+            _gravar_json_atomico(self.caminho, self.dados)
+        except OSError:
+            pass  # o cache é só atalho: sem ele, tudo funciona, só mais devagar
+
+
+def _candidatos(entrada, saida, recursivo):
+    saida_res = Path(saida).resolve()
+    # Saída dentro da entrada faria o lote validar os próprios relatórios.
+    return [p for p in listar_pdfs(entrada, recursivo) if saida_res not in p.resolve().parents]
+
+
 def pendentes(entrada, saida, recursivo=False):
     """PDFs da entrada ainda não validados: [(caminho, sha256)]."""
-    saida_res = Path(saida).resolve()
     registro = ler_registro(saida)
-    fila = []
-    for p in listar_pdfs(entrada, recursivo):
-        # Saída dentro da entrada faria o lote validar os próprios relatórios.
-        if saida_res in p.resolve().parents:
-            continue
-        h = sha256(p.read_bytes())
-        if h not in registro:
-            fila.append((p, h))
+    cache = CacheHash()
+    fila = [(p, h) for p in _candidatos(entrada, saida, recursivo)
+            if (h := cache.sha256(p)) not in registro]
+    cache.salvar()
     return fila
 
 
 def validar_pasta(entrada, lote, modo, idioma, recursivo=False, refazer=False, log=print):
-    if refazer:
-        saida_res = lote.saida.resolve()
-        novos = [
-            (p, sha256(p.read_bytes())) for p in listar_pdfs(entrada, recursivo)
-            if saida_res not in p.resolve().parents
-        ]
-    else:
-        novos = pendentes(entrada, lote.saida, recursivo)
-    log(f"{len(novos)} documento(s) novo(s) na pasta de entrada.")
-
-    linhas = []
-    enviados = 0
-    for caminho, h in novos:
-        if not pdf_tem_assinatura(caminho):
-            linha = linha_csv(
-                caminho, resultado="IGNORADO",
-                detalhe="PDF sem assinatura digital embutida; não enviado ao ITI.",
-            )
-            log(f"  {caminho.name}: IGNORADO (sem assinatura digital)")
+    with Trava(lote.saida) as trava:
+        if refazer:
+            cache = CacheHash()
+            novos = [(p, cache.sha256(p)) for p in _candidatos(entrada, lote.saida, recursivo)]
+            cache.salvar()
         else:
-            if enviados:
-                time.sleep(PAUSA_LOTE)
-            enviados += 1
-            try:
-                linha = validar_um(caminho, lote, modo, idioma)
-            except iti.ErroValidar as e:
-                linha = linha_csv(caminho, resultado="ERRO", detalhe=str(e))
-            log(f"  {caminho.name}: {linha['resultado']}")
-        lote.registrar(h, linha)
-        linhas.append(linha)
-    return linhas
+            novos = pendentes(entrada, lote.saida, recursivo)
+        log(f"{len(novos)} documento(s) novo(s) na pasta de entrada.")
+
+        linhas = []
+        enviados = 0
+        for caminho, h in novos:
+            trava.renovar()
+            if not refazer and lote.ja_validado(h):
+                continue  # outro computador validou enquanto este lote andava
+            if not pdf_tem_assinatura(caminho):
+                linha = linha_csv(
+                    caminho, resultado="IGNORADO",
+                    detalhe="PDF sem assinatura digital embutida; não enviado ao ITI.",
+                )
+                log(f"  {caminho.name}: IGNORADO (sem assinatura digital)")
+            else:
+                if enviados:
+                    time.sleep(PAUSA_LOTE)
+                enviados += 1
+                try:
+                    linha = validar_um(caminho, lote, modo, idioma)
+                except iti.ErroValidar as e:
+                    linha = linha_csv(caminho, resultado="ERRO", detalhe=str(e))
+                log(f"  {caminho.name}: {linha['resultado']}")
+            lote.registrar(h, linha)
+            linhas.append(linha)
+        return linhas
 
 
 def codigo_saida(linhas):

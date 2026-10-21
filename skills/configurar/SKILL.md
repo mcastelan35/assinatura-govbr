@@ -17,7 +17,7 @@ Ele exige o **uv** (astral.sh), que traz o Python certo e as bibliotecas de PDF 
 
 ## 1. Diagnóstico
 
-Rode `<cmd> diagnostico`. Resuma em uma ou duas linhas o que está pronto e o que falta.
+Rode `<cmd> diagnostico`. Resuma em uma ou duas linhas o que está pronto e o que falta. O diagnóstico confere a API do VALIDAR enviando um arquivo de teste fixo, sem dados pessoais; se ele disser que "o portal pode ter mudado", avise que a validação automática pode falhar até o plugin ser atualizado.
 - Se a resposta for "uv não é reconhecido" (ou "command not found"), faça o passo 2.
 - Se já existir configuração, mostre-a e pergunte se o usuário quer mudar algo. Se não quiser, encerre (passo 6).
 
@@ -68,6 +68,8 @@ Explique o dia a dia em quatro linhas:
 - só os documentos novos vão ao ITI; os já validados são reconhecidos pelo conteúdo, mesmo renomeados;
 - **"abra o painel de assinaturas"** mostra métricas, busca por pessoa e downloads em lote; o arquivo `Painel de Assinaturas.html` na pasta de saída também abre direto, em modo leitura;
 - cada validação entra na planilha `Validações.csv`, e as respostas completas do ITI ficam em `_auditoria`.
+
+Mencione que dá para deixar a validação automática, de hora em hora por exemplo (skill `agendar`).
 
 Ofereça: "Quer ver o painel com dados fictícios antes de usar com documentos reais?" — se sim, rode `<cmd> demo` **em segundo plano** e passe ao usuário o endereço que ele imprimir (`Painel aberto em: …`). Ou, se ele tiver um documento assinado à mão, siga a skill `validar`.
 

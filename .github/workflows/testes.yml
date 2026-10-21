@@ -1,0 +1,36 @@
+name: Testes
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    # Toda segunda-feira, 8h (Brasília): confere se a API do VALIDAR mudou.
+    - cron: "0 11 * * 1"
+
+jobs:
+  testes:
+    name: Testes (${{ matrix.os }})
+    if: github.event_name != 'schedule'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Rodar testes
+        run: uv run --no-project --python 3.12 --with pytest --with pypdf --with reportlab pytest
+
+  api-do-validar:
+    name: API do VALIDAR (online)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Conferir a API com o arquivo de teste (sem dados pessoais)
+        env:
+          ASSINATURA_GOVBR_TESTE_ONLINE: "1"
+        run: uv run --no-project --python 3.12 --with pytest --with pypdf --with reportlab pytest tests/test_online.py

@@ -5,6 +5,7 @@ __pycache__/
 # Documentos, relatórios e planilhas de clientes nunca entram no repositório (LGPD).
 *.pdf
 *.p7s
+!govbr/canario.p7s
 *.p7m
 *.csv
 _auditoria/
