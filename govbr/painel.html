@@ -377,8 +377,23 @@ dl.dados dd { margin: 0; color: var(--ink-2); overflow-wrap: anywhere; }
 (() => {
 "use strict";
 
-let DADOS = JSON.parse(document.getElementById("dados").textContent);
 const $ = (s, el = document) => el.querySelector(s);
+let DADOS;
+try {
+  DADOS = JSON.parse($("#dados").textContent);
+} catch (e) {
+  // Modelo aberto direto (ex.: pelo repositório): o plugin ainda não colocou os dados aqui.
+  document.title = "Modelo do Painel de Assinaturas";
+  document.body.innerHTML = `<div class="pagina"><header class="topo"><div class="marca">
+    <div class="sobretitulo">Validação de assinaturas · GOV.BR e ICP-Brasil</div>
+    <h1>Modelo do Painel de Assinaturas</h1></div></header>
+    <div class="area" style="margin-top:28px"><div class="vazio-estado">
+    <h3>Este arquivo é o modelo, ainda sem dados</h3>
+    <p>O painel com os seus documentos é o arquivo <code>Painel de Assinaturas.html</code> da pasta de saída.
+    Para abri-lo com todas as funções, ou para ver um exemplo com dados fictícios, peça ao Claude:
+    “abra o painel de assinaturas” ou “mostre o painel com dados fictícios”.</p></div></div></div>`;
+  return;
+}
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const icone = (id) => `<svg class="i" aria-hidden="true"><use href="#i-${id}"/></svg>`;
 const norm = (s) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
