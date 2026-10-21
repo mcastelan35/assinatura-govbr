@@ -1,0 +1,17 @@
+{
+  "description": "Avisa o Claude quando o plugin ainda não foi configurado neste computador.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/verificar_config.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

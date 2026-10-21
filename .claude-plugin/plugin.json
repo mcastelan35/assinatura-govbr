@@ -1,0 +1,21 @@
+{
+  "name": "assinatura-govbr",
+  "version": "1.0.0",
+  "description": "Valida automaticamente documentos assinados via GOV.BR ou ICP-Brasil no VALIDAR do ITI e entrega o Relatório de Conformidade oficial em PDF — separado ou mesclado ao documento —, com planilha de controle e trilha de auditoria.",
+  "author": {
+    "name": "Marcos Vilas Boas",
+    "url": "https://www.instagram.com/advvilasboas/"
+  },
+  "homepage": "https://github.com/mcastelan35/assinatura-govbr",
+  "repository": "https://github.com/mcastelan35/assinatura-govbr",
+  "keywords": [
+    "assinatura digital",
+    "gov.br",
+    "icp-brasil",
+    "iti",
+    "validar",
+    "relatório de conformidade",
+    "advocacia",
+    "jurídico"
+  ]
+}

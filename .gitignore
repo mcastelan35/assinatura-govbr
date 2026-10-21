@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+
+# Documentos, relatórios e planilhas de clientes nunca entram no repositório (LGPD).
+*.pdf
+*.p7s
+*.p7m
+*.csv
+_auditoria/
