@@ -1,22 +1,22 @@
 {
   "name": "assinatura-govbr",
-  "description": "Validação de assinaturas GOV.BR e ICP-Brasil para advogados no Claude Code.",
+  "description": "Validação de assinaturas GOV.BR e ICP-Brasil para advogados no Claude Code. Desenvolvido por Claude para Advogados.",
   "owner": {
-    "name": "Marcos Vilas Boas",
+    "name": "Claude para Advogados",
     "url": "https://www.instagram.com/advvilasboas/"
   },
   "metadata": {
-    "description": "Validação de assinaturas GOV.BR e ICP-Brasil para advogados no Claude Code.",
-    "version": "1.0.0"
+    "description": "Validação de assinaturas GOV.BR e ICP-Brasil para advogados no Claude Code. Desenvolvido por Claude para Advogados.",
+    "version": "1.1.0"
   },
   "plugins": [
     {
       "name": "assinatura-govbr",
       "source": "./",
-      "description": "Valida automaticamente documentos assinados via GOV.BR ou ICP-Brasil no VALIDAR do ITI e entrega o Relatório de Conformidade oficial em PDF — separado ou mesclado ao documento —, com planilha de controle e trilha de auditoria.",
-      "version": "1.0.0",
+      "description": "Valida automaticamente documentos assinados via GOV.BR ou ICP-Brasil no VALIDAR do ITI e entrega o Relatório de Conformidade oficial e o Dossiê de Conformidade, com painel de métricas, busca de pessoas e downloads em lote. Pastas no Google Drive.",
+      "version": "1.1.0",
       "author": {
-        "name": "Marcos Vilas Boas",
+        "name": "Claude para Advogados",
         "url": "https://www.instagram.com/advvilasboas/"
       },
       "homepage": "https://github.com/mcastelan35/assinatura-govbr",
@@ -27,6 +27,8 @@
         "icp-brasil",
         "iti",
         "validar",
+        "dossiê",
+        "google drive",
         "advocacia"
       ]
     }

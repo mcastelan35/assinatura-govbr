@@ -1,0 +1,1113 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel de Assinaturas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f6f4ef;
+  --surface: #fffdf9;
+  --surface-2: #f2efe7;
+  --surface-3: #ebe7dc;
+  --ink: #1b2230;
+  --ink-2: #4a5160;
+  --muted: #7d828c;
+  --line: #e5e0d4;
+  --line-2: #d5cfc0;
+  --brass: #94733f;
+  --brass-soft: #efe6d6;
+  --focus: #2b5bd7;
+  --st-ok: #0ca30c;
+  --st-alerta: #fab219;
+  --st-grave: #ec835a;
+  --st-critico: #d03b3b;
+  --st-neutro: #b4b1a7;
+  --shadow: 0 1px 0 rgba(27, 34, 48, .04), 0 10px 30px -18px rgba(27, 34, 48, .28);
+  --radius: 10px;
+  --serif: "Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --sans: "Hanken Grotesk", -apple-system, "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --bg: #111317; --surface: #181b20; --surface-2: #1e2228; --surface-3: #262a31;
+    --ink: #ecebe6; --ink-2: #bfc2c8; --muted: #8b9099; --line: #2a2f37; --line-2: #383e48;
+    --brass: #c9a56e; --brass-soft: #2c261d; --focus: #7aa2ff; --st-neutro: #6f6c66;
+    --shadow: 0 1px 0 rgba(0, 0, 0, .3), 0 12px 32px -18px rgba(0, 0, 0, .7);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #111317; --surface: #181b20; --surface-2: #1e2228; --surface-3: #262a31;
+  --ink: #ecebe6; --ink-2: #bfc2c8; --muted: #8b9099; --line: #2a2f37; --line-2: #383e48;
+  --brass: #c9a56e; --brass-soft: #2c261d; --focus: #7aa2ff; --st-neutro: #6f6c66;
+  --shadow: 0 1px 0 rgba(0, 0, 0, .3), 0 12px 32px -18px rgba(0, 0, 0, .7);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 400 14px/1.5 var(--sans);
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+  font-feature-settings: "ss01";
+}
+a { color: inherit; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
+.vh { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+svg.i { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+.pagina { max-width: 1240px; margin: 0 auto; padding: 0 32px 48px; }
+
+/* ---------- topo ---------- */
+.topo { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; padding: 36px 0 26px; border-bottom: 1px solid var(--line); }
+.marca { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.sobretitulo { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--brass); display: flex; align-items: center; gap: 10px; }
+.sobretitulo::before { content: ""; width: 22px; height: 2px; background: var(--brass); border-radius: 2px; }
+h1 { font: 500 34px/1.1 var(--serif); letter-spacing: -.015em; margin: 0; font-variation-settings: "opsz" 72; }
+.meta { color: var(--muted); font-size: 13px; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.meta b { color: var(--ink-2); font-weight: 500; }
+.acoes-topo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+.botao { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); cursor: pointer; font-weight: 500; font-size: 13.5px; white-space: nowrap; text-decoration: none; transition: background .15s, border-color .15s; }
+.botao:hover { background: var(--surface-2); }
+.botao.primario { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.botao.primario:hover { background: color-mix(in srgb, var(--ink) 86%, var(--brass)); }
+.botao[disabled] { opacity: .5; cursor: default; }
+.botao.icone { width: 36px; padding: 0; justify-content: center; }
+.contagem { font-variant-numeric: tabular-nums; background: color-mix(in srgb, var(--bg) 22%, transparent); border-radius: 999px; padding: 1px 8px; font-size: 12px; }
+.botao:not(.primario) .contagem { background: var(--surface-3); }
+.selo { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 999px; background: var(--brass-soft); color: var(--ink-2); font-size: 12px; font-weight: 500; }
+
+/* ---------- indicadores ---------- */
+.indicadores { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0; margin: 28px 0 24px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+.ind { padding: 18px 20px 16px; border-left: 1px solid var(--line); min-width: 0; }
+.ind:first-child { border-left: 0; }
+.ind .rot { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600; display: flex; align-items: center; gap: 7px; }
+.ind .num { font: 500 34px/1.15 var(--serif); font-variant-numeric: tabular-nums lining-nums; letter-spacing: -.01em; margin-top: 8px; font-variation-settings: "opsz" 96; }
+.ind .sub { color: var(--muted); font-size: 12.5px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ponto { width: 8px; height: 8px; border-radius: 50%; flex: none; display: inline-block; }
+.ponto.ok { background: var(--st-ok); } .ponto.alerta { background: var(--st-alerta); }
+.ponto.grave { background: var(--st-grave); } .ponto.critico { background: var(--st-critico); }
+.ponto.neutro { background: var(--st-neutro); }
+
+/* ---------- gráficos ---------- */
+.graficos { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); gap: 20px; margin-bottom: 28px; }
+.cartao { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px 22px; min-width: 0; }
+.cartao-topo { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+h2 { font: 500 18px/1.25 var(--serif); margin: 0; letter-spacing: -.005em; }
+.legenda { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--ink-2); margin-bottom: 10px; }
+.legenda span { display: inline-flex; align-items: center; gap: 7px; }
+.link-discreto { background: none; border: 0; padding: 0; color: var(--muted); font-size: 12.5px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--line-2); }
+.link-discreto:hover { color: var(--ink); }
+.grafico { position: relative; }
+.grafico svg { display: block; width: 100%; height: auto; overflow: visible; }
+.grafico .eixo { fill: var(--muted); font-size: 11px; font-family: var(--sans); }
+.grafico .grade { stroke: var(--line); stroke-width: 1; }
+.grafico .base { stroke: var(--line-2); stroke-width: 1; }
+.grafico .alvo { fill: transparent; cursor: default; }
+.grafico .alvo:hover + g, .grafico g.ativo { opacity: 1; }
+.dica { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); border-radius: 8px; padding: 9px 11px; font-size: 12.5px; line-height: 1.45; min-width: 150px; box-shadow: 0 8px 24px -8px rgba(0,0,0,.35); opacity: 0; transform: translateY(4px); transition: opacity .12s, transform .12s; z-index: 5; }
+.dica.vis { opacity: 1; transform: none; }
+.dica b { font-weight: 600; display: block; margin-bottom: 4px; }
+.dica .l { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+.dica .l span:first-child { display: inline-flex; align-items: center; gap: 7px; }
+.dica .ponto { box-shadow: 0 0 0 1.5px var(--ink); }
+table.simples { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+table.simples th, table.simples td { text-align: right; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+table.simples th:first-child, table.simples td:first-child { text-align: left; }
+table.simples th { font-weight: 600; color: var(--muted); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+
+.composicao { display: flex; height: 10px; border-radius: 4px; overflow: hidden; gap: 2px; margin: 4px 0 16px; background: var(--surface); }
+.composicao span { display: block; height: 100%; }
+.linhas-status { display: grid; gap: 2px; }
+.linha-status { display: grid; grid-template-columns: 1fr auto 46px; align-items: center; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+.linha-status:last-child { border-bottom: 0; }
+.linha-status .nome { display: inline-flex; align-items: center; gap: 9px; color: var(--ink-2); }
+.linha-status .v { font-variant-numeric: tabular-nums; font-weight: 600; }
+.linha-status .p { font-variant-numeric: tabular-nums; color: var(--muted); text-align: right; font-size: 12.5px; }
+.sep { height: 1px; background: var(--line); margin: 16px 0 14px; }
+.sub-h { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 0 0 10px; }
+.barra-cert { display: grid; grid-template-columns: 88px 1fr 34px; align-items: center; gap: 10px; font-size: 13px; padding: 4px 0; }
+.barra-cert .trilho { height: 6px; background: var(--surface-3); border-radius: 3px; overflow: hidden; }
+.barra-cert .trilho span { display: block; height: 100%; background: var(--ink-2); border-radius: 0 3px 3px 0; }
+.barra-cert .v { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+
+/* ---------- área principal ---------- */
+.area { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+.abas { display: flex; gap: 26px; padding: 0 22px; border-bottom: 1px solid var(--line); }
+.aba { background: none; border: 0; padding: 16px 0 14px; cursor: pointer; color: var(--muted); font-weight: 500; font-size: 14px; border-bottom: 2px solid transparent; margin-bottom: -1px; display: inline-flex; gap: 8px; align-items: center; }
+.aba[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+.aba .contagem { background: var(--surface-3); color: var(--ink-2); }
+.barra-ferramentas { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 14px 22px; border-bottom: 1px solid var(--line); }
+.busca { position: relative; flex: 1 1 320px; max-width: 460px; }
+.busca svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+.busca input { width: 100%; height: 38px; padding: 0 40px 0 36px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--bg); outline: none; transition: border-color .15s, background .15s; }
+.busca input:focus { border-color: var(--ink-2); background: var(--surface); }
+.busca kbd { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font: 500 11px var(--mono); color: var(--muted); border: 1px solid var(--line-2); border-radius: 4px; padding: 1px 6px; }
+.segmentos { display: inline-flex; background: var(--surface-2); border-radius: 8px; padding: 3px; gap: 2px; flex-wrap: wrap; }
+.segmentos button { border: 0; background: none; height: 30px; padding: 0 11px; border-radius: 6px; cursor: pointer; color: var(--ink-2); font-size: 13px; display: inline-flex; align-items: center; gap: 7px; }
+.segmentos button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(27,34,48,.12); font-weight: 500; }
+.seletor { height: 36px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--surface); padding: 0 30px 0 12px; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237d828c' fill='none' stroke-width='1.5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 11px center; cursor: pointer; }
+.espaco { flex: 1; }
+
+.lote { display: none; align-items: center; gap: 10px; padding: 10px 22px; background: var(--brass-soft); border-bottom: 1px solid var(--line); font-size: 13.5px; flex-wrap: wrap; }
+.lote.vis { display: flex; }
+.lote b { font-weight: 600; }
+
+table.lista { width: 100%; border-collapse: separate; border-spacing: 0; }
+table.lista th { position: sticky; top: 0; background: var(--surface); text-align: left; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 12px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; z-index: 1; }
+table.lista th button { background: none; border: 0; padding: 0; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; display: inline-flex; gap: 4px; align-items: center; }
+table.lista th button:hover { color: var(--ink); }
+table.lista th .seta { opacity: 0; font-size: 10px; }
+table.lista th[aria-sort] .seta { opacity: 1; }
+table.lista td { padding: 13px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+table.lista tr:last-child td { border-bottom: 0; }
+table.lista tbody tr { cursor: pointer; transition: background .1s; }
+table.lista tbody tr:hover { background: var(--surface-2); }
+table.lista tbody tr.sel { background: color-mix(in srgb, var(--brass-soft) 70%, var(--surface)); }
+table.lista td:first-child, table.lista th:first-child { padding-left: 22px; }
+table.lista td:last-child, table.lista th:last-child { padding-right: 22px; }
+.col-sel { width: 44px; }
+.marcador { width: 16px; height: 16px; accent-color: var(--ink); cursor: pointer; margin: 0; }
+.doc-nome { font-weight: 600; color: var(--ink); max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+.doc-sub { color: var(--muted); font-size: 12.5px; display: flex; gap: 10px; margin-top: 2px; white-space: nowrap; }
+.mono { font-family: var(--mono); font-size: 12px; letter-spacing: -.01em; }
+.pessoas-cel { color: var(--ink-2); max-width: 240px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pessoas-cel .mais { color: var(--muted); font-size: 12.5px; margin-left: 4px; }
+.pilula { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); white-space: nowrap; }
+.data-cel { font-variant-numeric: tabular-nums; color: var(--ink-2); white-space: nowrap; }
+.data-cel small { display: block; color: var(--muted); font-size: 12px; }
+.arquivos-cel { display: flex; gap: 4px; justify-content: flex-end; }
+.arq { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 7px; color: var(--ink-2); text-decoration: none; font-size: 12.5px; font-weight: 500; border: 1px solid transparent; background: none; cursor: pointer; white-space: nowrap; }
+.arq:hover { border-color: var(--line-2); background: var(--surface); color: var(--ink); }
+.arq.vazio { visibility: hidden; }
+.mostrar-mais { display: flex; justify-content: center; padding: 16px; border-top: 1px solid var(--line); }
+.vazio-estado { padding: 64px 24px; text-align: center; color: var(--ink-2); }
+.vazio-estado h3 { font: 500 20px var(--serif); margin: 0 0 8px; color: var(--ink); }
+.vazio-estado p { margin: 0 auto; max-width: 480px; }
+.vazio-estado code { font-family: var(--mono); font-size: 12.5px; background: var(--surface-2); padding: 2px 6px; border-radius: 4px; }
+
+.pessoa-nome { font-weight: 600; white-space: nowrap; }
+.pessoa-cpf { color: var(--muted); font-size: 12.5px; font-family: var(--mono); }
+.mini-status { display: inline-flex; gap: 12px; color: var(--ink-2); font-size: 13px; font-variant-numeric: tabular-nums; }
+.mini-status span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+
+/* ---------- painel lateral ---------- */
+.veu { position: fixed; inset: 0; background: rgba(17, 19, 23, .32); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 20; }
+.veu.vis { opacity: 1; pointer-events: auto; }
+.lateral { position: fixed; top: 0; right: 0; bottom: 0; width: min(500px, 100vw); background: var(--surface); border-left: 1px solid var(--line); transform: translateX(100%); transition: transform .24s cubic-bezier(.2, .7, .2, 1); z-index: 21; display: flex; flex-direction: column; box-shadow: -24px 0 48px -32px rgba(0,0,0,.35); }
+.lateral.vis { transform: none; }
+.lateral-topo { padding: 22px 24px 18px; border-bottom: 1px solid var(--line); display: flex; gap: 14px; align-items: flex-start; }
+.lateral-topo h3 { font: 500 21px/1.25 var(--serif); margin: 6px 0 8px; overflow-wrap: anywhere; }
+.lateral-corpo { padding: 6px 24px 28px; overflow-y: auto; flex: 1; }
+.bloco { padding: 18px 0; border-bottom: 1px solid var(--line); }
+.bloco:last-child { border-bottom: 0; }
+.bloco h4 { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 0 0 12px; }
+.conclusao { color: var(--ink-2); margin: 0; }
+.assinante { padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; display: grid; gap: 4px; }
+.assinante .l1 { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.assinante .l2 { color: var(--muted); font-size: 12.5px; display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.assinante button.link-discreto { justify-self: start; margin-top: 2px; }
+.hash { display: flex; align-items: center; gap: 8px; background: var(--surface-2); border-radius: 7px; padding: 9px 10px; }
+.hash code { font-family: var(--mono); font-size: 11.5px; overflow-wrap: anywhere; flex: 1; color: var(--ink-2); }
+.verificado { display: inline-flex; gap: 7px; align-items: center; color: var(--ink-2); font-size: 13px; margin-top: 10px; }
+.lista-arq { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.rolagem { overflow-x: auto; }
+.rolagem > table { min-width: 720px; }
+.item-arq { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; }
+.item-arq .t { flex: 1; min-width: 0; }
+.item-arq .t b { display: block; font-weight: 600; font-size: 13.5px; }
+.item-arq .t span { display: block; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item-arq .ac { display: flex; gap: 4px; }
+dl.dados { display: grid; grid-template-columns: 130px 1fr; gap: 8px 12px; margin: 0; font-size: 13px; }
+dl.dados dt { color: var(--muted); }
+dl.dados dd { margin: 0; color: var(--ink-2); overflow-wrap: anywhere; }
+.doc-pessoa { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.doc-pessoa:last-child { border-bottom: 0; }
+.doc-pessoa .t { flex: 1; min-width: 0; }
+.doc-pessoa .t b { font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.doc-pessoa .t b:hover { text-decoration: underline; text-underline-offset: 3px; }
+.doc-pessoa .t span { color: var(--muted); font-size: 12.5px; }
+
+/* ---------- progresso / avisos ---------- */
+.aviso { position: fixed; right: 24px; bottom: 24px; width: min(420px, calc(100vw - 32px)); background: var(--surface); border: 1px solid var(--line-2); border-radius: 12px; box-shadow: 0 20px 48px -20px rgba(0,0,0,.4); z-index: 30; display: none; }
+.aviso.vis { display: block; }
+.aviso-topo { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); font-weight: 600; }
+.aviso-corpo { padding: 10px 16px 14px; max-height: 220px; overflow-y: auto; font-size: 12.5px; color: var(--ink-2); font-family: var(--mono); line-height: 1.6; white-space: pre-wrap; }
+.giro { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line-2); border-top-color: var(--ink); animation: giro .8s linear infinite; }
+@keyframes giro { to { transform: rotate(360deg); } }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 8px; font-size: 13.5px; opacity: 0; transition: .2s; z-index: 40; pointer-events: none; }
+.toast.vis { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- rodapé ---------- */
+.rodape { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; color: var(--muted); font-size: 12.5px; padding: 28px 0 0; }
+.rodape a { color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--line-2); }
+.rodape a:hover { color: var(--ink); border-color: var(--ink); }
+.rodape .credito { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.rodape .credito::before { content: ""; width: 14px; height: 2px; background: var(--brass); border-radius: 2px; }
+
+/* ---------- responsivo ---------- */
+@media (max-width: 1080px) {
+  .indicadores { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ind:nth-child(4) { border-left: 0; }
+  .ind:nth-child(n+4) { border-top: 1px solid var(--line); }
+  .graficos { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .pagina { padding: 0 16px 32px; }
+  .topo { flex-direction: column; align-items: flex-start; padding-top: 24px; }
+  .acoes-topo { justify-content: flex-start; }
+  h1 { font-size: 28px; }
+  .indicadores { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ind { padding: 14px 16px; }
+  .ind:nth-child(odd) { border-left: 0; }
+  .ind:nth-child(4) { border-left: 1px solid var(--line); }
+  .ind:nth-child(n+3) { border-top: 1px solid var(--line); }
+  .ind .num { font-size: 28px; }
+  .abas, .barra-ferramentas, .lote { padding-left: 16px; padding-right: 16px; }
+  .col-pessoas, .col-validado, .col-sel { display: none; }
+  table.lista td:first-child, table.lista th:first-child { padding-left: 16px; }
+  table.lista td:last-child, table.lista th:last-child { padding-right: 16px; }
+  .doc-nome { max-width: 52vw; }
+  .arq .rot-arq { display: none; }
+  .busca { flex-basis: 100%; max-width: none; }
+}
+@media print {
+  .acoes-topo, .barra-ferramentas, .abas, .arquivos-cel, .col-sel, .mostrar-mais, .rodape { display: none !important; }
+  body { background: #fff; }
+  .cartao, .area, .indicadores { box-shadow: none; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-busca" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></symbol>
+  <symbol id="i-selo" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.4 3 8.3 7 9.5 4-1.2 7-5.1 7-9.5V6z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-pasta-doc" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7M9 7h3"/></symbol>
+  <symbol id="i-baixar" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></symbol>
+  <symbol id="i-abrir" viewBox="0 0 24 24"><path d="M14 4h6v6"/><path d="M20 4 11 13"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+  <symbol id="i-pasta" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-fechar" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-copiar" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+  <symbol id="i-validar" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v4h-4"/></symbol>
+  <symbol id="i-lua" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></symbol>
+  <symbol id="i-sol" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-pessoa" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+</svg>
+
+<div class="pagina">
+  <header class="topo">
+    <div class="marca">
+      <div class="sobretitulo">Validação de assinaturas · GOV.BR e ICP-Brasil</div>
+      <h1>Painel de Assinaturas</h1>
+      <div class="meta" id="meta"></div>
+    </div>
+    <div class="acoes-topo" id="acoes-topo"></div>
+  </header>
+
+  <section class="indicadores" id="indicadores" aria-label="Indicadores"></section>
+
+  <section class="graficos">
+    <div class="cartao">
+      <div class="cartao-topo">
+        <h2>Validações por mês</h2>
+        <button class="link-discreto" id="alternar-tabela" type="button">Ver em tabela</button>
+      </div>
+      <div class="legenda" id="legenda-mes"></div>
+      <div class="grafico" id="grafico-mes"></div>
+    </div>
+    <div class="cartao">
+      <div class="cartao-topo"><h2>Situação dos documentos</h2></div>
+      <div id="composicao"></div>
+      <div class="sep"></div>
+      <p class="sub-h">Assinaturas por certificado</p>
+      <div id="certificados"></div>
+    </div>
+  </section>
+
+  <section class="area" aria-label="Documentos e pessoas">
+    <div class="abas" role="tablist">
+      <button class="aba" role="tab" id="aba-documentos" aria-selected="true">Documentos <span class="contagem" id="n-docs"></span></button>
+      <button class="aba" role="tab" id="aba-pessoas" aria-selected="false">Pessoas <span class="contagem" id="n-pessoas"></span></button>
+    </div>
+    <div class="barra-ferramentas">
+      <label class="busca">
+        <span class="vh">Buscar</span>
+        <svg class="i"><use href="#i-busca"/></svg>
+        <input id="busca" type="search" autocomplete="off" placeholder="Buscar por documento, pessoa ou CPF">
+        <kbd>/</kbd>
+      </label>
+      <div class="segmentos" id="filtro-status" role="group" aria-label="Filtrar por situação"></div>
+      <span class="espaco"></span>
+      <label><span class="vh">Período</span>
+        <select class="seletor" id="periodo">
+          <option value="0">Todo o período</option>
+          <option value="30">Últimos 30 dias</option>
+          <option value="90">Últimos 90 dias</option>
+          <option value="365">Últimos 12 meses</option>
+        </select>
+      </label>
+    </div>
+    <div class="lote" id="lote"></div>
+    <div id="conteudo"></div>
+  </section>
+
+  <footer class="rodape">
+    <div class="credito" id="credito"></div>
+    <div id="rodape-dir"></div>
+  </footer>
+</div>
+
+<div class="veu" id="veu"></div>
+<aside class="lateral" id="lateral" role="dialog" aria-modal="true" aria-labelledby="lateral-titulo"></aside>
+<div class="aviso" id="aviso" role="status"></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script id="dados" type="application/json">__DADOS__</script>
+<script>
+(() => {
+"use strict";
+
+let DADOS = JSON.parse(document.getElementById("dados").textContent);
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const icone = (id) => `<svg class="i" aria-hidden="true"><use href="#i-${id}"/></svg>`;
+const norm = (s) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const digitos = (s) => String(s ?? "").replace(/\D/g, "");
+const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const fmtN = (n) => Number(n).toLocaleString("pt-BR");
+const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
+
+const SERV = DADOS.servidor || null;
+const TOKEN = SERV ? SERV.token : "";
+
+const STATUS = {
+  APROVADO: { rotulo: "Aprovado", grupo: "ok" },
+  COM_RESSALVAS: { rotulo: "Com ressalvas", grupo: "alerta" },
+  SEM_ASSINATURA_RECONHECIDA: { rotulo: "Assinatura não reconhecida", grupo: "grave" },
+  SEM_ASSINATURA_OU_CORROMPIDA: { rotulo: "Sem assinatura ou corrompida", grupo: "grave" },
+  IGNORADO: { rotulo: "Não enviado ao ITI", grupo: "neutro" },
+  ERRO: { rotulo: "Erro", grupo: "critico" },
+};
+const GRUPOS = [
+  { id: "ok", rotulo: "Aprovados", curto: "Aprovados" },
+  { id: "alerta", rotulo: "Com ressalvas", curto: "Com ressalvas" },
+  { id: "grave", rotulo: "Não reconhecidas pelo ITI", curto: "Não reconhecidas" },
+  { id: "neutro", rotulo: "Sem assinatura (não enviados)", curto: "Não enviados" },
+];
+const status = (r) => STATUS[r] || { rotulo: r || "—", grupo: "neutro" };
+const pilula = (r) => `<span class="pilula"><span class="ponto ${status(r).grupo}"></span>${esc(status(r).rotulo)}</span>`;
+
+const PARTICULAS = new Set(["da", "das", "de", "do", "dos", "e"]);
+const nomeProprio = (n) => String(n ?? "").toLowerCase().split(/\s+/).filter(Boolean)
+  .map((p, i) => (i && PARTICULAS.has(p) ? p : p.charAt(0).toUpperCase() + p.slice(1))).join(" ");
+
+function dataITI(s) { // "21/10/2026 10:50:47 BRT"
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?/.exec(s || "");
+  return m ? new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)) : null;
+}
+const dataISO = (s) => (s ? new Date(s) : null);
+function fmtData(d, comHora) {
+  if (!d || isNaN(d)) return "—";
+  const base = `${String(d.getDate()).padStart(2, "0")} ${MESES[d.getMonth()]} ${d.getFullYear()}`;
+  return comHora ? `${base}, ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}` : base;
+}
+function fmtRelativo(d) {
+  if (!d) return "";
+  const min = Math.round((Date.now() - d) / 60000);
+  if (min < 1) return "agora";
+  if (min < 60) return `há ${min} min`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `há ${h} h`;
+  return fmtData(d, true);
+}
+
+function url(rel, opcoes = {}) {
+  if (!rel) return null;
+  if (SERV) {
+    const q = new URLSearchParams({ t: TOKEN });
+    if (opcoes.baixar) q.set("baixar", "1");
+    if (opcoes.nome) q.set("nome", opcoes.nome);
+    return `/f/${rel.split("/").map(encodeURIComponent).join("/")}?${q}`;
+  }
+  return rel.split("/").map(encodeURIComponent).join("/");
+}
+async function api(caminho, corpo) {
+  const r = await fetch(`${caminho}?t=${encodeURIComponent(TOKEN)}`, {
+    method: corpo === undefined ? "GET" : "POST",
+    headers: corpo === undefined ? {} : { "Content-Type": "application/json", "X-Painel": "1" },
+    body: corpo === undefined ? undefined : JSON.stringify(corpo),
+  });
+  return r;
+}
+function toast(msg) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("vis");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("vis"), 2600);
+}
+function guardar(chave, valor) { try { localStorage.setItem("painel-assinaturas:" + chave, valor); } catch (e) {} }
+function lembrar(chave) { try { return localStorage.getItem("painel-assinaturas:" + chave); } catch (e) { return null; } }
+
+/* ------------------------------------------------ modelo */
+
+let DOCS = [], PESSOAS = [], PESSOA_POR_CHAVE = new Map();
+
+function preparar() {
+  DOCS = DADOS.documentos.map((d) => {
+    const datas = d.assinaturas.map((a) => dataITI(a.data)).filter(Boolean);
+    const assinadoEm = datas.length ? new Date(Math.max(...datas)) : null;
+    return {
+      ...d,
+      grupo: status(d.resultado).grupo,
+      validado: dataISO(d.validado_em),
+      assinadoEm,
+      chave: norm([d.arquivo, ...d.assinaturas.map((a) => `${a.nome} ${a.cpf}`)].join(" ")),
+      cpfs: d.assinaturas.map((a) => digitos(a.cpf)).join(" "),
+    };
+  });
+  const mapa = new Map();
+  for (const d of DOCS) {
+    for (const a of d.assinaturas) {
+      const chave = `${norm(a.nome)}|${a.cpf || ""}`;
+      if (!mapa.has(chave)) mapa.set(chave, { chave, nome: a.nome, cpf: a.cpf, docs: [], ultima: null, cont: { ok: 0, alerta: 0 } });
+      const p = mapa.get(chave);
+      p.docs.push(d);
+      const quando = dataITI(a.data);
+      if (quando && (!p.ultima || quando > p.ultima)) p.ultima = quando;
+      if (a.status === "Aprovado") p.cont.ok++; else p.cont.alerta++;
+    }
+  }
+  PESSOAS = [...mapa.values()].map((p) => ({ ...p, busca: norm(`${p.nome} ${p.cpf}`), cpfDig: digitos(p.cpf) }));
+  PESSOA_POR_CHAVE = new Map(PESSOAS.map((p) => [p.chave, p]));
+}
+
+/* ------------------------------------------------ estado */
+
+const estado = {
+  aba: "documentos",
+  q: "",
+  grupo: "todos",
+  periodo: 0,
+  ordem: { campo: "validado", dir: -1 },
+  ordemPessoas: { campo: "ultima", dir: -1 },
+  limite: 60,
+  sel: new Set(),
+  tabelaMes: false,
+};
+
+function noPeriodo(d) {
+  if (!estado.periodo) return true;
+  if (!d.validado) return false;
+  return Date.now() - d.validado <= estado.periodo * 864e5;
+}
+function casaBusca(texto, cpf) {
+  const q = norm(estado.q).trim();
+  if (!q) return true;
+  const qd = digitos(estado.q);
+  return q.split(/\s+/).every((t) => texto.includes(t)) || (qd.length >= 3 && cpf.includes(qd));
+}
+function docsNoPeriodo() { return DOCS.filter(noPeriodo); }
+function docsFiltrados() {
+  const lista = docsNoPeriodo().filter((d) => (estado.grupo === "todos" || d.grupo === estado.grupo) && casaBusca(d.chave, d.cpfs));
+  const { campo, dir } = estado.ordem;
+  const val = {
+    arquivo: (d) => norm(d.arquivo),
+    situacao: (d) => ["ok", "alerta", "grave", "critico", "neutro"].indexOf(d.grupo),
+    assinado: (d) => (d.assinadoEm ? +d.assinadoEm : 0),
+    validado: (d) => (d.validado ? +d.validado : 0),
+  }[campo];
+  return lista.sort((a, b) => (val(a) > val(b) ? dir : val(a) < val(b) ? -dir : 0));
+}
+function pessoasFiltradas() {
+  const ids = new Set(docsNoPeriodo().map((d) => d.id));
+  const lista = PESSOAS.filter((p) => p.docs.some((d) => ids.has(d.id)) && casaBusca(p.busca, p.cpfDig))
+    .filter((p) => estado.grupo === "todos" || p.docs.some((d) => d.grupo === estado.grupo));
+  const { campo, dir } = estado.ordemPessoas;
+  const val = { nome: (p) => norm(p.nome), docs: (p) => p.docs.length, ultima: (p) => (p.ultima ? +p.ultima : 0) }[campo];
+  return lista.sort((a, b) => (val(a) > val(b) ? dir : val(a) < val(b) ? -dir : 0));
+}
+
+/* ------------------------------------------------ topo */
+
+function renderTopo() {
+  const gerado = dataISO(DADOS.gerado_em);
+  const meta = [];
+  meta.push(`<span>Pasta de saída <b>${esc(DADOS.saida_nome)}</b></span>`);
+  meta.push(`<span title="${esc(fmtData(gerado, true))}">Atualizado ${esc(fmtRelativo(gerado))}</span>`);
+  if (DOCS.some((d) => d.demo)) meta.push(`<span class="selo">Dados de demonstração</span>`);
+  if (!SERV) meta.push(`<span class="selo" title="Aberto direto da pasta. Para baixar em lote, gerar dossiê por pessoa e validar novos documentos, peça ao Claude: “abra o painel de assinaturas”.">Somente leitura</span>`);
+  $("#meta").innerHTML = meta.join("");
+
+  const acoes = [];
+  const fila = DADOS.fila;
+  if (SERV) {
+    if (SERV.pode_validar) {
+      acoes.push(`<button class="botao" id="abrir-entrada" type="button" title="Abrir a pasta de entrada">${icone("pasta")} Entrada</button>`);
+      acoes.push(`<button class="botao" id="abrir-saida" type="button" title="Abrir a pasta de saída">${icone("pasta")} Saída</button>`);
+      acoes.push(`<button class="botao primario" id="validar" type="button" ${fila && fila.length ? "" : "disabled"}>${icone("validar")} Validar novos <span class="contagem">${fila ? fila.length : 0}</span></button>`);
+    } else {
+      acoes.push(`<button class="botao" id="abrir-saida" type="button">${icone("pasta")} Abrir pasta</button>`);
+    }
+  } else if (fila && fila.length) {
+    acoes.push(`<span class="selo">${fmtN(fila.length)} aguardando na pasta de entrada</span>`);
+  }
+  acoes.push(`<button class="botao icone" id="tema" type="button" aria-label="Alternar tema claro e escuro">${icone(temaAtual() === "dark" ? "sol" : "lua")}</button>`);
+  $("#acoes-topo").innerHTML = acoes.join("");
+
+  $("#tema").onclick = alternarTema;
+  const ent = $("#abrir-entrada"), sai = $("#abrir-saida"), val = $("#validar");
+  if (ent) ent.onclick = () => abrirNoSistema("entrada");
+  if (sai) sai.onclick = () => abrirNoSistema("saida");
+  if (val) val.onclick = validarNovos;
+
+  $("#credito").innerHTML = `<span>${esc(DADOS.credito)}</span><span>Fale com o desenvolvedor: <a href="${esc(DADOS.contato_url)}" target="_blank" rel="noopener">${esc(DADOS.contato_rotulo)}</a></span>`;
+  $("#rodape-dir").textContent = `assinatura-govbr ${DADOS.versao} · Os dados deste painel ficam na sua pasta de saída.`;
+}
+
+function temaAtual() {
+  const t = document.documentElement.dataset.theme;
+  if (t) return t;
+  return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+function alternarTema() {
+  const novo = temaAtual() === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = novo;
+  guardar("tema", novo);
+  renderTopo();
+}
+
+/* ------------------------------------------------ indicadores */
+
+function renderIndicadores() {
+  const docs = docsNoPeriodo();
+  const c = { ok: 0, alerta: 0, grave: 0, neutro: 0, critico: 0 };
+  docs.forEach((d) => c[d.grupo]++);
+  const enviados = docs.length - c.neutro;
+  const pessoas = new Set(docs.flatMap((d) => d.assinaturas.map((a) => `${norm(a.nome)}|${a.cpf || ""}`))).size;
+  const assinaturas = docs.reduce((s, d) => s + d.assinaturas.length, 0);
+  const periodo = estado.periodo ? `nos últimos ${estado.periodo} dias` : "desde o início";
+  const ind = [
+    { rot: "Recebidos", num: docs.length, sub: `${fmtN(enviados)} enviados ao ITI ${periodo}` },
+    { rot: "Aprovados", ponto: "ok", num: c.ok, sub: enviados ? `${pct(c.ok, enviados)}% dos enviados` : "—" },
+    { rot: "Com ressalvas", ponto: "alerta", num: c.alerta, sub: c.alerta ? "Indeterminadas ou reprovadas" : "Nenhuma pendência" },
+    { rot: "Sem assinatura", ponto: "grave", num: c.grave + c.neutro, sub: `${fmtN(c.grave)} não reconhecidas · ${fmtN(c.neutro)} não enviados` },
+    { rot: "Pessoas", num: pessoas, sub: `${fmtN(assinaturas)} assinaturas analisadas` },
+    { rot: "Arquivos gerados", num: DADOS.arquivos_gerados, sub: "Cópias, relatórios e dossiês" },
+  ];
+  $("#indicadores").innerHTML = ind.map((i) => `
+    <div class="ind">
+      <div class="rot">${i.ponto ? `<span class="ponto ${i.ponto}"></span>` : ""}${esc(i.rot)}</div>
+      <div class="num">${fmtN(i.num)}</div>
+      <div class="sub" title="${esc(i.sub)}">${esc(i.sub)}</div>
+    </div>`).join("");
+}
+
+/* ------------------------------------------------ gráfico mensal */
+
+function seriesMensais() {
+  const hoje = new Date();
+  const meses = [];
+  for (let k = 11; k >= 0; k--) {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() - k, 1);
+    meses.push({ ano: d.getFullYear(), mes: d.getMonth(), ok: 0, alerta: 0, grave: 0, neutro: 0 });
+  }
+  for (const d of DOCS) {
+    if (!d.validado) continue;
+    const m = meses.find((x) => x.ano === d.validado.getFullYear() && x.mes === d.validado.getMonth());
+    if (m) m[d.grupo === "critico" ? "grave" : d.grupo]++;
+  }
+  return meses;
+}
+function nicePasso(max) {
+  if (max <= 4) return 1;
+  const bruto = max / 4, pot = 10 ** Math.floor(Math.log10(bruto));
+  return [1, 2, 2.5, 5, 10].map((m) => m * pot).find((p) => p >= bruto);
+}
+function renderGraficoMes() {
+  const meses = seriesMensais();
+  $("#legenda-mes").innerHTML = GRUPOS.map((g) => `<span><span class="ponto ${g.id}"></span>${esc(g.rotulo)}</span>`).join("");
+  const alvo = $("#grafico-mes");
+  const totalGeral = meses.reduce((s, m) => s + m.ok + m.alerta + m.grave + m.neutro, 0);
+  if (estado.tabelaMes) {
+    alvo.innerHTML = `<table class="simples"><thead><tr><th>Mês</th>${GRUPOS.map((g) => `<th>${esc(g.rotulo)}</th>`).join("")}<th>Total</th></tr></thead><tbody>${
+      meses.map((m) => `<tr><td>${MESES[m.mes]} ${m.ano}</td>${GRUPOS.map((g) => `<td>${m[g.id]}</td>`).join("")}<td>${m.ok + m.alerta + m.grave + m.neutro}</td></tr>`).join("")
+    }</tbody></table>`;
+    return;
+  }
+  const W = 640, H = 210, ml = 30, mr = 6, mt = 8, mb = 26;
+  const max = Math.max(1, ...meses.map((m) => m.ok + m.alerta + m.grave + m.neutro));
+  const passo = nicePasso(max), topo = Math.ceil(max / passo) * passo;
+  const y = (v) => mt + (H - mt - mb) * (1 - v / topo);
+  const larg = (W - ml - mr) / meses.length, barra = Math.min(26, larg * 0.5);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Validações por mês nos últimos 12 meses, por situação">`;
+  for (let v = 0; v <= topo; v += passo) {
+    svg += `<line class="${v ? "grade" : "base"}" x1="${ml}" x2="${W - mr}" y1="${y(v)}" y2="${y(v)}"/>`;
+    svg += `<text class="eixo" x="${ml - 8}" y="${y(v) + 3.5}" text-anchor="end">${v}</text>`;
+  }
+  meses.forEach((m, i) => {
+    const cx = ml + larg * i + larg / 2, x = cx - barra / 2;
+    let base = y(0);
+    const segs = GRUPOS.filter((g) => m[g.id] > 0);
+    segs.forEach((g, k) => {
+      const alturaCheia = y(0) - y(m[g.id]);
+      const ultimo = k === segs.length - 1;
+      const h = Math.max(1, alturaCheia - (ultimo ? 0 : 2));
+      const yTopo = base - h;
+      const r = ultimo ? Math.min(4, h, barra / 2) : 0;
+      svg += r
+        ? `<path fill="var(--st-${g.id})" d="M${x},${base} V${yTopo + r} Q${x},${yTopo} ${x + r},${yTopo} H${x + barra - r} Q${x + barra},${yTopo} ${x + barra},${yTopo + r} V${base} Z"/>`
+        : `<rect fill="var(--st-${g.id})" x="${x}" y="${yTopo}" width="${barra}" height="${h}"/>`;
+      base = yTopo - (ultimo ? 0 : 2);
+    });
+    const rot = m.mes === 0 || i === 0 ? `${MESES[m.mes]} ${String(m.ano).slice(2)}` : MESES[m.mes];
+    svg += `<text class="eixo" x="${cx}" y="${H - 8}" text-anchor="middle">${rot}</text>`;
+    svg += `<rect class="alvo" data-i="${i}" x="${ml + larg * i}" y="${mt}" width="${larg}" height="${H - mt - mb}"/>`;
+  });
+  svg += `</svg><div class="dica" id="dica-mes"></div>`;
+  alvo.innerHTML = totalGeral ? svg : `<p class="conclusao" style="padding:40px 0;text-align:center">Nenhuma validação nos últimos 12 meses.</p>`;
+  const dica = $("#dica-mes");
+  if (!dica) return;
+  alvo.querySelectorAll(".alvo").forEach((el) => {
+    const mostrar = () => {
+      const m = meses[+el.dataset.i];
+      const total = m.ok + m.alerta + m.grave + m.neutro;
+      dica.innerHTML = `<b>${MESES[m.mes]} ${m.ano} · ${total} documento${total === 1 ? "" : "s"}</b>` +
+        GRUPOS.map((g) => `<div class="l"><span><span class="ponto ${g.id}"></span>${esc(g.rotulo)}</span><span>${m[g.id]}</span></div>`).join("");
+      const caixa = alvo.getBoundingClientRect(), r = el.getBoundingClientRect();
+      const esquerda = r.left - caixa.left + r.width / 2 - 85;
+      dica.style.left = `${Math.max(0, Math.min(esquerda, caixa.width - 180))}px`;
+      dica.style.top = `-6px`;
+      dica.classList.add("vis");
+    };
+    el.addEventListener("mouseenter", mostrar);
+    el.addEventListener("mouseleave", () => dica.classList.remove("vis"));
+  });
+}
+
+function renderComposicao() {
+  const docs = docsNoPeriodo();
+  const total = docs.length;
+  const cont = Object.fromEntries(GRUPOS.map((g) => [g.id, docs.filter((d) => (d.grupo === "critico" ? "grave" : d.grupo) === g.id).length]));
+  const barra = total ? GRUPOS.filter((g) => cont[g.id]).map((g) => `<span style="flex:${cont[g.id]};background:var(--st-${g.id})" title="${esc(g.rotulo)}: ${cont[g.id]}"></span>`).join("") : "";
+  $("#composicao").innerHTML = `
+    <div class="composicao" role="img" aria-label="Composição por situação">${barra}</div>
+    <div class="linhas-status">${GRUPOS.map((g) => `
+      <div class="linha-status"><span class="nome"><span class="ponto ${g.id}"></span>${esc(g.rotulo)}</span>
+      <span class="v">${fmtN(cont[g.id])}</span><span class="p">${pct(cont[g.id], total)}%</span></div>`).join("")}
+    </div>`;
+  const cert = { "GOV.BR": 0, "ICP-Brasil": 0, Outras: 0 };
+  docs.forEach((d) => d.assinaturas.forEach((a) => {
+    const c = norm(a.certificadora);
+    cert[c.includes("gov") ? "GOV.BR" : c.includes("icp") ? "ICP-Brasil" : "Outras"]++;
+  }));
+  const maxC = Math.max(1, ...Object.values(cert));
+  $("#certificados").innerHTML = Object.entries(cert).filter(([k, v]) => v || k !== "Outras").map(([k, v]) => `
+    <div class="barra-cert"><span>${esc(k)}</span><span class="trilho"><span style="width:${(v / maxC) * 100}%"></span></span><span class="v">${fmtN(v)}</span></div>`).join("");
+}
+
+/* ------------------------------------------------ lista de documentos */
+
+function botoesArquivo(d) {
+  const item = (tipo, rotulo, icon, nome) => {
+    const rel = d.arquivos[tipo];
+    if (!rel) return `<span class="arq vazio">${icone(icon)}<span class="rot-arq">${rotulo}</span></span>`;
+    const href = url(rel, { baixar: !!SERV, nome });
+    return `<a class="arq" href="${esc(href)}" ${SERV ? "" : 'target="_blank" rel="noopener"'} title="${SERV ? "Baixar" : "Abrir"} ${esc(rotulo.toLowerCase())}" data-parar>${icone(icon)}<span class="rot-arq">${rotulo}</span></a>`;
+  };
+  const stem = (d.arquivo || "documento").replace(/\.[^.]+$/, "");
+  return item("original", "Original", "doc", d.arquivo) +
+    item("relatorio", "Relatório", "selo", `${stem} - Relatório de Conformidade ITI.pdf`) +
+    item("dossie", "Dossiê", "pasta-doc");
+}
+
+function cabecalho(campo, rotulo, chaveOrdem = "ordem", classe = "") {
+  const o = estado[chaveOrdem];
+  const ativo = o.campo === campo;
+  return `<th class="${classe}" ${ativo ? `aria-sort="${o.dir > 0 ? "ascending" : "descending"}"` : ""}><button type="button" data-ordem="${campo}" data-chave="${chaveOrdem}">${rotulo}<span class="seta">${ativo && o.dir > 0 ? "↑" : "↓"}</span></button></th>`;
+}
+
+function renderDocumentos() {
+  const lista = docsFiltrados();
+  $("#n-docs").textContent = fmtN(docsNoPeriodo().length);
+  if (!DOCS.length) return vazioInicial();
+  if (!lista.length) {
+    $("#conteudo").innerHTML = `<div class="vazio-estado"><h3>Nada encontrado</h3><p>Nenhum documento corresponde à busca e aos filtros escolhidos.</p></div>`;
+    return;
+  }
+  const visiveis = lista.slice(0, estado.limite);
+  const todosSel = visiveis.length && visiveis.every((d) => estado.sel.has(d.id));
+  $("#conteudo").innerHTML = `
+    <div class="rolagem"><table class="lista">
+      <thead><tr>
+        ${SERV ? `<th class="col-sel"><input type="checkbox" class="marcador" id="sel-todos" aria-label="Selecionar todos" ${todosSel ? "checked" : ""}></th>` : ""}
+        ${cabecalho("arquivo", "Documento")}
+        <th class="col-pessoas">Signatários</th>
+        ${cabecalho("situacao", "Situação")}
+        ${cabecalho("assinado", "Assinado em", "ordem", "col-validado")}
+        <th style="text-align:right">Arquivos</th>
+      </tr></thead>
+      <tbody>${visiveis.map((d) => {
+        const nomes = d.assinaturas.map((a) => nomeProprio(a.nome));
+        return `<tr data-id="${d.id}" class="${estado.sel.has(d.id) ? "sel" : ""}">
+          ${SERV ? `<td class="col-sel"><input type="checkbox" class="marcador" data-sel="${d.id}" aria-label="Selecionar ${esc(d.arquivo)}" ${estado.sel.has(d.id) ? "checked" : ""} data-parar></td>` : ""}
+          <td><span class="doc-nome" title="${esc(d.arquivo)}">${esc((d.arquivo || "").replace(/\.pdf$/i, ""))}</span>
+            <span class="doc-sub"><span>Validado ${esc(fmtData(d.validado))}</span><span class="mono">${esc(d.sha256.slice(0, 10))}</span></span></td>
+          <td class="pessoas-cel col-pessoas">${nomes.length ? esc(nomes[0]) + (nomes.length > 1 ? `<span class="mais">+${nomes.length - 1}</span>` : "") : '<span style="color:var(--muted)">—</span>'}</td>
+          <td>${pilula(d.resultado)}</td>
+          <td class="data-cel col-validado">${d.assinadoEm ? `${esc(fmtData(d.assinadoEm))}` : "—"}</td>
+          <td><div class="arquivos-cel">${botoesArquivo(d)}</div></td>
+        </tr>`;
+      }).join("")}</tbody>
+    </table></div>
+    ${lista.length > estado.limite ? `<div class="mostrar-mais"><button class="botao" id="mais" type="button">Mostrar mais ${fmtN(Math.min(60, lista.length - estado.limite))} de ${fmtN(lista.length - estado.limite)}</button></div>` : ""}`;
+
+  const mais = $("#mais");
+  if (mais) mais.onclick = () => { estado.limite += 60; renderDocumentos(); };
+  const todos = $("#sel-todos");
+  if (todos) todos.onchange = () => { visiveis.forEach((d) => (todos.checked ? estado.sel.add(d.id) : estado.sel.delete(d.id))); renderDocumentos(); renderLote(); };
+}
+
+function vazioInicial() {
+  const ent = DADOS.entrada ? `<code>${esc(DADOS.entrada)}</code>` : "a pasta de entrada";
+  $("#conteudo").innerHTML = `<div class="vazio-estado"><h3>Nenhum documento validado ainda</h3>
+    <p>Coloque os PDFs assinados em ${ent} e peça ao Claude: “valide os documentos assinados”. Os resultados aparecem aqui.</p></div>`;
+}
+
+/* ------------------------------------------------ lista de pessoas */
+
+function renderPessoas() {
+  const lista = pessoasFiltradas();
+  if (!DOCS.length) return vazioInicial();
+  if (!lista.length) {
+    $("#conteudo").innerHTML = `<div class="vazio-estado"><h3>Ninguém encontrado</h3><p>Busque pelo nome ou pelos dígitos visíveis do CPF (ex.: 412.538).</p></div>`;
+    return;
+  }
+  $("#conteudo").innerHTML = `
+    <div class="rolagem"><table class="lista">
+      <thead><tr>
+        ${cabecalho("nome", "Pessoa", "ordemPessoas")}
+        ${cabecalho("docs", "Documentos", "ordemPessoas")}
+        <th class="col-pessoas">Situação das assinaturas</th>
+        ${cabecalho("ultima", "Última assinatura", "ordemPessoas", "col-validado")}
+        <th style="text-align:right">Ações</th>
+      </tr></thead>
+      <tbody>${lista.slice(0, estado.limite).map((p) => `
+        <tr data-pessoa="${esc(p.chave)}">
+          <td><div class="pessoa-nome">${esc(nomeProprio(p.nome))}</div><div class="pessoa-cpf">${esc(p.cpf || "CPF não informado")}</div></td>
+          <td class="data-cel">${fmtN(p.docs.length)}</td>
+          <td class="col-pessoas"><span class="mini-status"><span><span class="ponto ok"></span>${p.cont.ok} aprovada${p.cont.ok === 1 ? "" : "s"}</span>${p.cont.alerta ? `<span><span class="ponto alerta"></span>${p.cont.alerta} com ressalva</span>` : ""}</span></td>
+          <td class="data-cel col-validado">${esc(fmtData(p.ultima))}</td>
+          <td><div class="arquivos-cel">
+            <button class="arq" type="button" data-ver-docs="${esc(p.chave)}" data-parar>${icone("doc")}<span class="rot-arq">Documentos</span></button>
+            ${SERV ? `<button class="arq" type="button" data-dossie-pessoa="${esc(p.chave)}" data-parar>${icone("pasta-doc")}<span class="rot-arq">Dossiê da pessoa</span></button>` : ""}
+          </div></td>
+        </tr>`).join("")}</tbody>
+    </table></div>
+    ${lista.length > estado.limite ? `<div class="mostrar-mais"><button class="botao" id="mais" type="button">Mostrar mais</button></div>` : ""}`;
+  const mais = $("#mais");
+  if (mais) mais.onclick = () => { estado.limite += 60; renderPessoas(); };
+}
+
+/* ------------------------------------------------ seleção em lote */
+
+function renderLote() {
+  const el = $("#lote");
+  if (!SERV || !estado.sel.size || estado.aba !== "documentos") { el.classList.remove("vis"); return; }
+  const n = estado.sel.size;
+  el.innerHTML = `<b>${fmtN(n)} selecionado${n === 1 ? "" : "s"}</b><span class="espaco"></span>
+    <button class="botao" type="button" data-zip="original">${icone("baixar")} Originais</button>
+    <button class="botao" type="button" data-zip="dossie">${icone("baixar")} Dossiês</button>
+    <button class="botao primario" type="button" data-zip="tudo">${icone("baixar")} Tudo (.zip)</button>
+    <button class="link-discreto" type="button" id="limpar-sel">Limpar seleção</button>`;
+  el.classList.add("vis");
+  $("#limpar-sel").onclick = () => { estado.sel.clear(); renderDocumentos(); renderLote(); };
+}
+
+async function baixarZip(tipo) {
+  const tipos = tipo === "tudo" ? ["original", "relatorio", "dossie"] : [tipo];
+  toast("Preparando o arquivo .zip…");
+  try {
+    const r = await api("/api/zip", { ids: [...estado.sel], tipos });
+    if (!r.ok) throw new Error();
+    const blob = await r.blob();
+    const nome = decodeURIComponent((/filename\*=UTF-8''([^;]+)/.exec(r.headers.get("Content-Disposition") || "") || [])[1] || "assinaturas.zip");
+    salvarBlob(blob, nome);
+    toast("Download iniciado.");
+  } catch (e) { toast("Não foi possível gerar o .zip."); }
+}
+function salvarBlob(blob, nome) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = nome;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+
+/* ------------------------------------------------ painel lateral */
+
+function abrirLateral(htmlConteudo) {
+  const el = $("#lateral");
+  el.innerHTML = htmlConteudo;
+  el.classList.add("vis");
+  $("#veu").classList.add("vis");
+  abrirLateral.foco = document.activeElement;
+  setTimeout(() => { const f = el.querySelector("[data-fechar]"); if (f) f.focus(); }, 50);
+}
+function fecharLateral() {
+  $("#lateral").classList.remove("vis");
+  $("#veu").classList.remove("vis");
+  if (abrirLateral.foco && abrirLateral.foco.focus) abrirLateral.foco.focus();
+}
+const botaoFechar = `<button class="botao icone" type="button" data-fechar aria-label="Fechar">${icone("fechar")}</button>`;
+
+function conclusao(d) {
+  const n = d.assinaturas.length, ok = d.assinaturas.filter((a) => a.status === "Aprovado").length;
+  if (d.resultado === "APROVADO") return n === 1 ? "A assinatura foi aprovada pelo VALIDAR do ITI." : `As ${n} assinaturas foram aprovadas pelo VALIDAR do ITI.`;
+  if (d.resultado === "COM_RESSALVAS") return `${ok} de ${n} assinaturas aprovadas; as demais foram consideradas indeterminadas ou reprovadas. Consulte o relatório do ITI.`;
+  return d.detalhe || "";
+}
+
+function itemArquivo(d, tipo, titulo, descricao) {
+  const rel = d.arquivos[tipo];
+  if (!rel) return "";
+  const nome = rel.split("/").pop();
+  return `<div class="item-arq">${icone(tipo === "original" ? "doc" : tipo === "relatorio" ? "selo" : "pasta-doc")}
+    <div class="t"><b>${esc(titulo)}</b><span title="${esc(nome)}">${esc(descricao || nome)}</span></div>
+    <div class="ac">
+      <a class="arq" href="${esc(url(rel))}" target="_blank" rel="noopener" title="Visualizar">${icone("abrir")}<span class="rot-arq">Abrir</span></a>
+      ${SERV ? `<a class="arq" href="${esc(url(rel, { baixar: true, nome: tipo === "original" ? d.arquivo : undefined }))}" title="Baixar">${icone("baixar")}<span class="rot-arq">Baixar</span></a>` : ""}
+      ${SERV ? `<button class="arq" type="button" data-mostrar="${esc(rel)}" title="Mostrar na pasta">${icone("pasta")}</button>` : ""}
+    </div></div>`;
+}
+
+function abrirDocumento(id) {
+  const d = DOCS.find((x) => x.id === id);
+  if (!d) return;
+  const assin = d.assinaturas.map((a) => {
+    const chave = `${norm(a.nome)}|${a.cpf || ""}`;
+    return `<div class="assinante">
+      <div class="l1"><b>${esc(nomeProprio(a.nome))}</b><span class="pilula"><span class="ponto ${a.status === "Aprovado" ? "ok" : "alerta"}"></span>${esc(a.status)}</span></div>
+      <div class="l2"><span class="mono">${esc(a.cpf || "CPF não informado")}</span><span>${esc(a.data || "—")}</span></div>
+      <div class="l2"><span>${esc([a.certificadora, a.emissor].filter(Boolean).join(" · ") || "—")}</span><span>${a.carimbo ? "Com carimbo de tempo" : "Sem carimbo de tempo"}</span></div>
+      <button class="link-discreto" type="button" data-pessoa-lateral="${esc(chave)}">Ver todos os documentos desta pessoa</button>
+    </div>`;
+  }).join("");
+  const arquivos = [
+    itemArquivo(d, "dossie", "Dossiê de Conformidade", "Capa-resumo e relatório oficial do ITI"),
+    itemArquivo(d, "original", "Documento original", d.modo === "mesclado" ? "Cópia exata do arquivo enviado ao ITI" : undefined),
+    itemArquivo(d, "relatorio", "Relatório de Conformidade do ITI"),
+  ].join("");
+  abrirLateral(`
+    <div class="lateral-topo">
+      <div style="flex:1;min-width:0">
+        ${pilula(d.resultado)}
+        <h3 id="lateral-titulo">${esc((d.arquivo || "").replace(/\.pdf$/i, ""))}</h3>
+        <p class="conclusao">${esc(conclusao(d))}</p>
+      </div>
+      ${botaoFechar}
+    </div>
+    <div class="lateral-corpo">
+      ${arquivos ? `<div class="bloco"><h4>Arquivos</h4><div class="lista-arq">${arquivos}</div></div>` : ""}
+      ${d.assinaturas.length ? `<div class="bloco"><h4>Assinaturas (${d.assinaturas.length})</h4>${assin}</div>` : ""}
+      <div class="bloco"><h4>Integridade</h4>
+        <div class="hash"><code>${esc(d.sha256)}</code><button class="botao icone" type="button" data-copiar="${esc(d.sha256)}" aria-label="Copiar SHA-256">${icone("copiar")}</button></div>
+        ${d.hash_confere === true ? `<div class="verificado"><span class="ponto ok"></span>O SHA-256 calculado localmente confere com o informado pelo ITI.</div>` : ""}
+        ${d.hash_confere === false ? `<div class="verificado"><span class="ponto critico"></span>Atenção: o SHA-256 local difere do informado pelo ITI.</div>` : ""}
+      </div>
+      <div class="bloco"><h4>Rastreabilidade</h4>
+        <dl class="dados">
+          <dt>Validado em</dt><dd>${esc(fmtData(d.validado, true))}</dd>
+          ${d.data_iti ? `<dt>Data no ITI</dt><dd>${esc(d.data_iti)}</dd>` : ""}
+          ${d.iti && d.iti.verificador ? `<dt>Software do ITI</dt><dd>${esc([d.iti.verificador, d.iti.validador].filter(Boolean).join(" · "))}</dd>` : ""}
+          ${d.parcial ? `<dt>Observação</dt><dd>Validação parcial: o documento tem mais assinaturas do que o ITI processou.</dd>` : ""}
+          ${d.auditoria ? `<dt>Evidências</dt><dd class="mono">${esc(d.auditoria)}</dd>` : ""}
+        </dl>
+      </div>
+    </div>`);
+}
+
+function abrirPessoa(chave) {
+  const p = PESSOA_POR_CHAVE.get(chave);
+  if (!p) return;
+  const docs = [...p.docs].sort((a, b) => (b.assinadoEm || 0) - (a.assinadoEm || 0));
+  abrirLateral(`
+    <div class="lateral-topo">
+      <div style="flex:1;min-width:0">
+        <span class="pilula">${icone("pessoa")} Pessoa</span>
+        <h3 id="lateral-titulo">${esc(nomeProprio(p.nome))}</h3>
+        <p class="conclusao"><span class="mono">${esc(p.cpf || "CPF não informado")}</span> · ${fmtN(docs.length)} documento${docs.length === 1 ? "" : "s"} · última assinatura em ${esc(fmtData(p.ultima))}</p>
+      </div>
+      ${botaoFechar}
+    </div>
+    <div class="lateral-corpo">
+      ${SERV ? `<div class="bloco"><button class="botao primario" type="button" data-dossie-pessoa="${esc(chave)}">${icone("pasta-doc")} Gerar dossiê desta pessoa</button>
+        <p class="conclusao" style="font-size:12.5px;margin-top:8px">Junta os dossiês de todos os documentos assinados por esta pessoa num PDF só, com uma capa-resumo.</p></div>` : ""}
+      <div class="bloco"><h4>Documentos assinados</h4>
+        ${docs.map((d) => {
+          const a = d.assinaturas.find((x) => `${norm(x.nome)}|${x.cpf || ""}` === chave);
+          return `<div class="doc-pessoa">
+            <div class="t"><b data-doc="${d.id}" tabindex="0">${esc((d.arquivo || "").replace(/\.pdf$/i, ""))}</b>
+            <span>${esc(a && a.data ? a.data : "—")} · ${esc(a ? a.status : "")}</span></div>
+            <div class="arquivos-cel">${botoesArquivo(d).replace(/<span class="rot-arq">[^<]*<\/span>/g, "")}</div>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>`);
+}
+
+async function dossiePessoa(chave, botao) {
+  const p = PESSOA_POR_CHAVE.get(chave);
+  if (!p) return;
+  if (botao) botao.disabled = true;
+  toast("Montando o dossiê…");
+  try {
+    const r = await api("/api/pessoa", { nome: p.nome, cpf: p.cpf || "" });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.erro);
+    location.href = url(j.arquivo, { baixar: true });
+    toast("Dossiê gerado em “Dossiês por pessoa”.");
+    atualizarDados(true);
+  } catch (e) { toast(e.message || "Não foi possível gerar o dossiê."); }
+  finally { if (botao) botao.disabled = false; }
+}
+
+/* ------------------------------------------------ servidor: ações */
+
+async function abrirNoSistema(alvo) {
+  try { const r = await api("/api/abrir", { alvo }); if (!r.ok) throw new Error(); }
+  catch (e) { toast("Não foi possível abrir a pasta."); }
+}
+
+async function validarNovos() {
+  const r = await api("/api/validar", {});
+  if (!r.ok) { toast("Não foi possível iniciar a validação."); return; }
+  const aviso = $("#aviso");
+  aviso.innerHTML = `<div class="aviso-topo"><span class="giro"></span><span>Validando no ITI…</span></div><div class="aviso-corpo" id="aviso-log"></div>`;
+  aviso.classList.add("vis");
+  const btn = $("#validar"); if (btn) btn.disabled = true;
+  const acompanhar = async () => {
+    const st = await (await api("/api/status")).json();
+    $("#aviso-log").textContent = st.linhas.join("\n");
+    $("#aviso-log").scrollTop = 1e6;
+    if (st.rodando) return setTimeout(acompanhar, 1500);
+    const fim = st.fim || {};
+    const resumo = fim.ok ? Object.entries(fim.contagem || {}).map(([k, v]) => `${v} ${status(k).rotulo.toLowerCase()}`).join(" · ") || "Nada novo" : fim.erro;
+    aviso.querySelector(".aviso-topo").innerHTML = `<span class="ponto ${fim.ok ? "ok" : "critico"}"></span><span style="flex:1">${fim.ok ? "Validação concluída" : "Falha na validação"}</span><button class="botao icone" type="button" id="fechar-aviso" aria-label="Fechar">${icone("fechar")}</button>`;
+    $("#aviso-log").textContent += `\n\n${resumo}`;
+    $("#fechar-aviso").onclick = () => aviso.classList.remove("vis");
+    atualizarDados();
+  };
+  setTimeout(acompanhar, 800);
+}
+
+async function atualizarDados(silencioso) {
+  try {
+    const r = await api("/api/dados");
+    DADOS = await r.json();
+    preparar();
+    renderTudo();
+    if (!silencioso) toast("Painel atualizado.");
+  } catch (e) {}
+}
+
+/* ------------------------------------------------ eventos */
+
+function renderConteudo() {
+  if (estado.aba === "documentos") renderDocumentos(); else renderPessoas();
+  renderLote();
+}
+function renderFiltros() {
+  const opcoes = [{ id: "todos", rotulo: "Todos" }, ...GRUPOS];
+  $("#filtro-status").innerHTML = opcoes.map((o) => `<button type="button" data-grupo="${o.id}" aria-pressed="${estado.grupo === o.id}">${o.id !== "todos" ? `<span class="ponto ${o.id}"></span>` : ""}${esc(o.curto || o.rotulo)}</button>`).join("");
+  $("#n-pessoas").textContent = fmtN(PESSOAS.length);
+}
+function renderTudo() {
+  renderTopo();
+  renderIndicadores();
+  renderGraficoMes();
+  renderComposicao();
+  renderFiltros();
+  renderConteudo();
+}
+
+function trocarAba(aba) {
+  estado.aba = aba;
+  estado.limite = 60;
+  $("#aba-documentos").setAttribute("aria-selected", aba === "documentos");
+  $("#aba-pessoas").setAttribute("aria-selected", aba === "pessoas");
+  guardar("aba", aba);
+  renderConteudo();
+}
+
+document.addEventListener("click", (ev) => {
+  const t = ev.target.closest("button, a, tr, b[data-doc], input");
+  if (!t) return;
+  if (t.matches("[data-fechar]")) return fecharLateral();
+  if (t.matches("[data-grupo]")) { estado.grupo = t.dataset.grupo; estado.limite = 60; renderFiltros(); renderConteudo(); return; }
+  if (t.matches("[data-ordem]")) {
+    const chave = t.dataset.chave, o = estado[chave];
+    if (o.campo === t.dataset.ordem) o.dir *= -1; else { o.campo = t.dataset.ordem; o.dir = t.dataset.ordem === "arquivo" || t.dataset.ordem === "nome" ? 1 : -1; }
+    return renderConteudo();
+  }
+  if (t.matches("[data-sel]")) {
+    t.checked ? estado.sel.add(t.dataset.sel) : estado.sel.delete(t.dataset.sel);
+    t.closest("tr").classList.toggle("sel", t.checked);
+    return renderLote();
+  }
+  if (t.matches("[data-zip]")) return baixarZip(t.dataset.zip);
+  if (t.matches("[data-ver-docs]")) {
+    const p = PESSOA_POR_CHAVE.get(t.dataset.verDocs);
+    estado.q = p ? nomeProprio(p.nome) : "";
+    $("#busca").value = estado.q;
+    return trocarAba("documentos");
+  }
+  if (t.matches("[data-dossie-pessoa]")) return dossiePessoa(t.dataset.dossiePessoa, t);
+  if (t.matches("[data-pessoa-lateral]")) return abrirPessoa(t.dataset.pessoaLateral);
+  if (t.matches("[data-mostrar]")) return abrirNoSistema(t.dataset.mostrar);
+  if (t.matches("[data-copiar]")) {
+    navigator.clipboard && navigator.clipboard.writeText(t.dataset.copiar).then(() => toast("SHA-256 copiado."), () => {});
+    return;
+  }
+  if (t.matches("b[data-doc]")) return abrirDocumento(t.dataset.doc);
+  if (t.matches("[data-parar]") || t.closest("[data-parar]")) return;
+  if (t.matches("tr[data-id]")) return abrirDocumento(t.dataset.id);
+  if (t.matches("tr[data-pessoa]")) return abrirPessoa(t.dataset.pessoa);
+});
+document.addEventListener("keydown", (ev) => {
+  if (ev.key === "Escape") { if ($("#lateral").classList.contains("vis")) fecharLateral(); return; }
+  if (ev.key === "/" && document.activeElement.tagName !== "INPUT") { ev.preventDefault(); $("#busca").focus(); }
+  if (ev.key === "Enter" && ev.target.matches("b[data-doc]")) abrirDocumento(ev.target.dataset.doc);
+});
+$("#veu").onclick = fecharLateral;
+$("#aba-documentos").onclick = () => trocarAba("documentos");
+$("#aba-pessoas").onclick = () => trocarAba("pessoas");
+$("#busca").addEventListener("input", (ev) => { estado.q = ev.target.value; estado.limite = 60; renderConteudo(); });
+$("#periodo").onchange = (ev) => { estado.periodo = +ev.target.value; guardar("periodo", ev.target.value); renderIndicadores(); renderComposicao(); renderConteudo(); };
+$("#alternar-tabela").onclick = (ev) => { estado.tabelaMes = !estado.tabelaMes; ev.target.textContent = estado.tabelaMes ? "Ver gráfico" : "Ver em tabela"; renderGraficoMes(); };
+
+const temaSalvo = lembrar("tema");
+if (temaSalvo === "dark" || temaSalvo === "light") document.documentElement.dataset.theme = temaSalvo;
+const periodoSalvo = lembrar("periodo");
+if (periodoSalvo) { estado.periodo = +periodoSalvo; $("#periodo").value = periodoSalvo; }
+if (lembrar("aba") === "pessoas") estado.aba = "pessoas";
+
+preparar();
+renderTudo();
+trocarAba(estado.aba);
+if (SERV) setInterval(() => api("/api/ping").catch(() => {}), 5 * 60 * 1000);
+})();
+</script>
+</body>
+</html>

@@ -1,19 +1,19 @@
 ---
 name: configurar
-description: Configuração inicial do validador de assinaturas GOV.BR/ICP-Brasil — verifica a instalação, pergunta em qual pasta os documentos assinados serão colocados, qual a pasta de saída e se o Relatório de Conformidade do ITI sai mesclado ao documento ou em arquivo separado. Use logo depois de instalar o plugin, quando o contexto disser que o plugin assinatura-govbr ainda não foi configurado, ou quando o usuário disser "configura o validador", "muda a pasta", "quero o relatório mesclado/separado", "não está funcionando".
+description: Configuração inicial do validador de assinaturas GOV.BR/ICP-Brasil — verifica a instalação, pergunta em qual pasta os documentos assinados serão colocados (de preferência no Google Drive), qual a pasta de saída e se o Relatório de Conformidade do ITI sai mesclado ao documento ou em arquivo separado. Use logo depois de instalar o plugin, quando o contexto disser que o plugin assinatura-govbr ainda não foi configurado, ou quando o usuário disser "configura o validador", "muda a pasta", "quero usar o Google Drive", "quero o relatório mesclado/separado", "não está funcionando".
 allowed-tools:
-  - Bash(uv run --no-project --python 3.12 --with pypdf "${CLAUDE_PLUGIN_ROOT}/validar_govbr.py" *)
-  - PowerShell(uv run --no-project --python 3.12 --with pypdf "${CLAUDE_PLUGIN_ROOT}/validar_govbr.py" *)
-  - Bash(~/.local/bin/uv run --no-project --python 3.12 --with pypdf "${CLAUDE_PLUGIN_ROOT}/validar_govbr.py" *)
-  - PowerShell(& "$env:USERPROFILE\.local\bin\uv.exe" run --no-project --python 3.12 --with pypdf "${CLAUDE_PLUGIN_ROOT}/validar_govbr.py" *)
+  - Bash(uv run --no-project --python 3.12 --with pypdf --with reportlab "${CLAUDE_PLUGIN_ROOT}/validar_govbr.py" *)
+  - PowerShell(uv run --no-project --python 3.12 --with pypdf --with reportlab "${CLAUDE_PLUGIN_ROOT}/validar_govbr.py" *)
+  - Bash(~/.local/bin/uv run --no-project --python 3.12 --with pypdf --with reportlab "${CLAUDE_PLUGIN_ROOT}/validar_govbr.py" *)
+  - PowerShell(& "$env:USERPROFILE\.local\bin\uv.exe" run --no-project --python 3.12 --with pypdf --with reportlab "${CLAUDE_PLUGIN_ROOT}/validar_govbr.py" *)
 ---
 
 # Configuração do validador de assinaturas
 
 Objetivo: numa conversa só, o usuário sai com a ferramenta funcionando e três escolhas feitas — pasta de entrada, pasta de saída e formato do relatório. Fale em linguagem simples, uma etapa por vez, e faça as perguntas com a ferramenta `AskUserQuestion` (botões), quando ela existir na sessão.
 
-**Comando base** (`<cmd>` neste texto): `uv run --no-project --python 3.12 --with pypdf "${CLAUDE_PLUGIN_ROOT}/validar_govbr.py"`.
-Ele exige o **uv** (astral.sh), que traz o Python certo e a biblioteca de PDF sem pedir administrador. Logo depois de instalar o uv, ele ainda não está no PATH desta sessão: use o caminho completo — Windows (PowerShell): `& "$env:USERPROFILE\.local\bin\uv.exe" run --no-project --python 3.12 --with pypdf "${CLAUDE_PLUGIN_ROOT}/validar_govbr.py" …`; Mac/Linux: `~/.local/bin/uv run …` — ou peça ao usuário para reiniciar o Claude Code. Se o Claude Code pedir permissão para esses comandos, explique que são a mesma ferramenta e sugira "Sim, e não perguntar de novo".
+**Comando base** (`<cmd>` neste texto): `uv run --no-project --python 3.12 --with pypdf --with reportlab "${CLAUDE_PLUGIN_ROOT}/validar_govbr.py"`.
+Ele exige o **uv** (astral.sh), que traz o Python certo e as bibliotecas de PDF sem pedir administrador. Logo depois de instalar o uv, ele ainda não está no PATH desta sessão: use o caminho completo — Windows (PowerShell): `& "$env:USERPROFILE\.local\bin\uv.exe" run --no-project --python 3.12 --with pypdf --with reportlab "${CLAUDE_PLUGIN_ROOT}/validar_govbr.py" …`; Mac/Linux: `~/.local/bin/uv run …` — ou peça ao usuário para reiniciar o Claude Code. Se o Claude Code pedir permissão para esses comandos, explique que são a mesma ferramenta e sugira "Sim, e não perguntar de novo".
 
 ## 1. Diagnóstico
 
@@ -27,31 +27,30 @@ Explique que é o instalador oficial do uv (astral.sh), que não precisa de admi
 - Windows (PowerShell): `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
 - Mac/Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh`
 
-Depois, repita o diagnóstico com o caminho completo do uv. Na primeira execução o uv baixa o Python 3.12 e a biblioteca pypdf (alguns segundos; uma vez só).
+Depois, repita o diagnóstico com o caminho completo do uv. Na primeira execução o uv baixa o Python 3.12 e as bibliotecas pypdf e reportlab (alguns segundos; uma vez só).
 
 ## 3. As três perguntas
 
-Rode `<cmd> sugerir-pastas` para obter as pastas sugeridas (dentro de Documentos) e, num único `AskUserQuestion`, faça as três perguntas:
+Rode `<cmd> sugerir-pastas`. A resposta lista, em ordem de preferência, os Drives compartilhados do Google Drive, o Meu Drive e a pasta Documentos, cada um com `entrada` e `saida` sugeridas.
 
-1. **"Em qual pasta você vai colocar os documentos assinados para validar?"**
-   - "Sugerida: `<entrada sugerida>`" (recomendada)
-   - "Escolher numa janela"
-   - (o usuário pode digitar outro caminho em "Outro")
-2. **"Em qual pasta os relatórios devem ser entregues?"**
-   - "Sugerida: `<saída sugerida>`" (recomendada)
-   - "Escolher numa janela"
+**Recomende o Google Drive** quando ele estiver instalado: os documentos chegam de qualquer computador ou do celular, ficam com backup e o painel abre em qualquer máquina da equipe. Entre os Drives, prefira um **Drive compartilhado** do escritório — os arquivos pertencem ao escritório, não a uma pessoa, e as permissões do Drive controlam quem vê dados de clientes. Se o Drive não estiver instalado, mencione em uma frase que dá para instalar o "Google Drive para computador" depois e usar a pasta Documentos por enquanto.
+
+Num único `AskUserQuestion`, faça as três perguntas:
+
+1. **"Onde você vai colocar os documentos assinados para validar?"** — uma opção por sugestão (rótulo curto como "Drive compartilhado: Escritório", "Meu Drive", "Somente este computador"), a recomendada primeiro, mais "Escolher numa janela". O usuário pode digitar outro caminho em "Outro".
+2. **"Onde os relatórios e o painel devem ficar?"** — as mesmas origens, apontando para a `saida` sugerida. Recomende o mesmo lugar escolhido na pergunta 1.
 3. **"Como você quer o Relatório de Conformidade do ITI?"**
-   - "Separado" — na pasta de saída ficam uma cópia intacta do documento assinado e, ao lado, `<nome> - Relatório de Conformidade ITI.pdf`. Recomendado: a cópia mantém a assinatura digital válida.
-   - "Mesclado" — um PDF só, `<nome> - com Relatório de Conformidade ITI.pdf`, com as páginas do documento seguidas das do relatório e marcadores para navegar. Prático para protocolar, mas esse arquivo novo **não carrega a assinatura digital** (qualquer alteração a invalida); a prova está no relatório e no documento original, que continua intacto na pasta de entrada.
+   - "Separado" (recomendado) — em `Documentos/` ficam a cópia intacta do documento assinado (a assinatura digital continua válida), o relatório oficial do ITI e o Dossiê de Conformidade (capa-resumo + relatório).
+   - "Mesclado" — um PDF só por documento: o Dossiê de Conformidade com capa, cópia do documento e relatório, com marcadores para navegar. Prático para protocolar, mas esse arquivo **não carrega a assinatura digital** (qualquer alteração num PDF assinado a invalida); a prova está no relatório, e o original fica intacto na pasta de entrada e em `_auditoria`.
 
-Para "Escolher numa janela", rode `<cmd> escolher-pasta --titulo "Pasta dos documentos assinados"` (ou "Pasta de saída dos relatórios") com tempo limite longo. A janela do sistema pode abrir atrás de outras; no Windows, procure na barra de tarefas. A saída é o caminho escolhido, ou `CANCELADO`.
+Para "Escolher numa janela", rode `<cmd> escolher-pasta --titulo "Pasta dos documentos assinados"` (ou "Pasta de saída") com tempo limite longo. A janela pode abrir atrás de outras; no Windows, procure na barra de tarefas. A saída é o caminho escolhido, ou `CANCELADO`.
 
 Se o usuário digitou um caminho, use-o como veio. As pastas não precisam existir: a ferramenta as cria.
 
 ## 4. Salvar
 
 Rode `<cmd> configurar --entrada "ENTRADA" --saida "SAIDA" --modo separado|mesclado`.
-- Se a saída avisar que uma pasta "parece sincronizada com a nuvem" (OneDrive, Google Drive, Dropbox…), diga em uma frase que os relatórios trazem nome e parte do CPF dos signatários e pergunte se ele quer manter assim mesmo.
+- Se a pasta estiver no Google Drive, lembre em uma frase que os relatórios trazem nome e parte do CPF dos signatários: vale conferir quem tem acesso à pasta. Para outro serviço de nuvem (OneDrive, Dropbox), diga o mesmo.
 - Subpastas: por padrão só a própria pasta de entrada é lida. Se o usuário organiza por cliente em subpastas, rode também `<cmd> configurar --recursivo`.
 
 ## 5. Avisos importantes (diga em poucas linhas)
@@ -64,9 +63,12 @@ Rode `<cmd> configurar --entrada "ENTRADA" --saida "SAIDA" --modo separado|mescl
 
 Se a pasta de saída estiver fora da pasta em que o Claude Code está aberto, diga que o usuário pode digitar `/add-dir "<pasta de saída>"` uma vez, para o Claude ler os resultados sem pedir permissão a cada vez.
 
-Explique o dia a dia em três linhas:
-- coloque os PDFs assinados na pasta de entrada e diga **"valide os documentos assinados"** (ou `/assinatura-govbr:validar`);
-- só os documentos novos são enviados ao ITI; os já validados são reconhecidos pelo conteúdo, mesmo renomeados;
-- cada validação entra na planilha `Validações.csv` da pasta de saída, e as respostas completas do ITI ficam em `_auditoria`.
+Explique o dia a dia em quatro linhas:
+- coloque os PDFs assinados na pasta de entrada e diga **"valide os documentos assinados"**;
+- só os documentos novos vão ao ITI; os já validados são reconhecidos pelo conteúdo, mesmo renomeados;
+- **"abra o painel de assinaturas"** mostra métricas, busca por pessoa e downloads em lote; o arquivo `Painel de Assinaturas.html` na pasta de saída também abre direto, em modo leitura;
+- cada validação entra na planilha `Validações.csv`, e as respostas completas do ITI ficam em `_auditoria`.
 
-Pergunte se ele quer testar agora com um documento assinado. Se sim, siga a skill `validar`.
+Ofereça: "Quer ver o painel com dados fictícios antes de usar com documentos reais?" — se sim, rode `<cmd> demo` **em segundo plano** e passe ao usuário o endereço que ele imprimir (`Painel aberto em: …`). Ou, se ele tiver um documento assinado à mão, siga a skill `validar`.
+
+Termine com uma linha de crédito: o plugin foi desenvolvido por **Claude para Advogados**; dúvidas e sugestões: https://www.instagram.com/advvilasboas/

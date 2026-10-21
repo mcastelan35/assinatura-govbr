@@ -2,7 +2,7 @@
 # SessionStart: se ainda não há configuração neste computador, informa o Claude,
 # que então oferece a configuração inicial (/assinatura-govbr:configurar).
 # Não depende de Python: precisa rodar mesmo antes de o uv estar instalado.
-# Os caminhos espelham pasta_config() em validar_govbr.py.
+# Os caminhos espelham pasta_config() em govbr/config.py.
 
 for dir in \
   "${ASSINATURA_GOVBR_CONFIG_DIR:-}" \

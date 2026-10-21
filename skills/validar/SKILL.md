@@ -1,17 +1,17 @@
 ---
 name: validar
-description: Valida documentos assinados via GOV.BR ou ICP-Brasil no VALIDAR do ITI e entrega o Relatório de Conformidade oficial em PDF (separado ou mesclado ao documento), com planilha de controle. Use SEMPRE que o usuário pedir para validar, verificar, conferir ou atestar assinatura digital/eletrônica, gov.br, ICP-Brasil, "valide os documentos assinados", "tem documento novo na pasta", "gera o relatório do ITI", "essa assinatura é válida?", ou enviar/apontar um PDF assinado.
+description: Valida documentos assinados via GOV.BR ou ICP-Brasil no VALIDAR do ITI e entrega o Relatório de Conformidade oficial e o Dossiê de Conformidade (capa-resumo + relatório), com planilha de controle e painel. Use SEMPRE que o usuário pedir para validar, verificar, conferir ou atestar assinatura digital/eletrônica, gov.br, ICP-Brasil, "valide os documentos assinados", "tem documento novo na pasta", "gera o relatório do ITI", "essa assinatura é válida?", ou enviar/apontar um PDF assinado.
 argument-hint: "[arquivo.pdf]"
 allowed-tools:
-  - Bash(uv run --no-project --python 3.12 --with pypdf "${CLAUDE_PLUGIN_ROOT}/validar_govbr.py" *)
-  - PowerShell(uv run --no-project --python 3.12 --with pypdf "${CLAUDE_PLUGIN_ROOT}/validar_govbr.py" *)
-  - Bash(~/.local/bin/uv run --no-project --python 3.12 --with pypdf "${CLAUDE_PLUGIN_ROOT}/validar_govbr.py" *)
-  - PowerShell(& "$env:USERPROFILE\.local\bin\uv.exe" run --no-project --python 3.12 --with pypdf "${CLAUDE_PLUGIN_ROOT}/validar_govbr.py" *)
+  - Bash(uv run --no-project --python 3.12 --with pypdf --with reportlab "${CLAUDE_PLUGIN_ROOT}/validar_govbr.py" *)
+  - PowerShell(uv run --no-project --python 3.12 --with pypdf --with reportlab "${CLAUDE_PLUGIN_ROOT}/validar_govbr.py" *)
+  - Bash(~/.local/bin/uv run --no-project --python 3.12 --with pypdf --with reportlab "${CLAUDE_PLUGIN_ROOT}/validar_govbr.py" *)
+  - PowerShell(& "$env:USERPROFILE\.local\bin\uv.exe" run --no-project --python 3.12 --with pypdf --with reportlab "${CLAUDE_PLUGIN_ROOT}/validar_govbr.py" *)
 ---
 
 # Validar assinaturas no VALIDAR do ITI
 
-**Comando base** (`<cmd>`): `uv run --no-project --python 3.12 --with pypdf "${CLAUDE_PLUGIN_ROOT}/validar_govbr.py"`. Se o uv não for reconhecido, siga a skill `configurar` (passo 2).
+**Comando base** (`<cmd>`): `uv run --no-project --python 3.12 --with pypdf --with reportlab "${CLAUDE_PLUGIN_ROOT}/validar_govbr.py"`. Se o uv não for reconhecido, siga a skill `configurar` (passo 2).
 
 ## 1. Conferir a configuração
 
@@ -30,12 +30,16 @@ Antes de validar arquivo avulso que ainda não está na pasta de entrada, lembre
 
 ## 3. Relatar
 
-Apresente uma tabela curta — documento, resultado, signatário(s) — e os arquivos gerados. Significado dos resultados:
+Apresente uma tabela curta — documento, resultado, signatário(s) — e onde estão os arquivos. Os arquivos ficam em `<saída>/Documentos/`:
+- modo separado: `<nome>.pdf` (cópia íntegra, com a assinatura válida), `<nome> - Relatório de Conformidade ITI.pdf` e `<nome> - Dossiê de Conformidade.pdf`;
+- modo mesclado: `<nome> - Dossiê de Conformidade.pdf` (capa + cópia do documento + relatório).
+
+Quando o resultado não é aprovado, o nome ganha o sufixo, por exemplo "(COM RESSALVAS)".
 
 | Resultado | O que significa |
 |---|---|
-| `APROVADO` | Todas as assinaturas aprovadas pelo ITI. Relatório oficial entregue. |
-| `COM_RESSALVAS` | Alguma assinatura **Indeterminada** ou **Reprovada**. O nome do relatório recebe "(COM RESSALVAS)". Indeterminada costuma vir de PDF alterado depois da assinatura ou de software que não implementa DocMDP; reprovada indica problema na cadeia de certificados ou na integridade. |
+| `APROVADO` | Todas as assinaturas aprovadas pelo ITI. |
+| `COM_RESSALVAS` | Alguma assinatura **Indeterminada** ou **Reprovada**. Indeterminada costuma vir de PDF alterado depois da assinatura ou de software que não implementa DocMDP; reprovada indica problema na cadeia de certificados ou na integridade. |
 | `SEM_ASSINATURA_RECONHECIDA` | O ITI não reconheceu assinatura GOV.BR/ICP-Brasil (ex.: certificado de outra infraestrutura). Não há relatório. |
 | `SEM_ASSINATURA_OU_CORROMPIDA` | Arquivo sem assinatura legível ou corrompida. Não há relatório. |
 | `IGNORADO` | PDF sem assinatura digital embutida: não foi enviado ao ITI. Comum quando se baixa a versão anterior à assinatura, ou quando o PDF assinado foi "impresso em PDF" (isso apaga a assinatura). |
@@ -43,10 +47,10 @@ Apresente uma tabela curta — documento, resultado, signatário(s) — e os arq
 
 Observações úteis ao usuário, quando se aplicarem:
 - Assinatura GOV.BR é **assinatura eletrônica avançada** (Lei 14.063/2020), não qualificada ICP-Brasil; alguns órgãos (ex.: INPI) exigem a qualificada.
-- `carimbo_de_tempo: não` é o normal no GOV.BR: a data da assinatura é a declarada por quem assinou.
-- No modo mesclado, lembre que o arquivo mesclado não carrega a assinatura digital; o original continua na pasta de entrada.
+- Sem carimbo de tempo é o normal no GOV.BR: a data da assinatura é a declarada por quem assinou.
+- O dossiê mesclado não carrega a assinatura digital; o original continua na pasta de entrada e em `_auditoria`.
 
-A planilha `Validações.csv` acumula o histórico e abre direto no Excel. As respostas completas do ITI de cada documento ficam em `_auditoria/<documento>_<data-hora>/` (`resumo.json` traz o SHA-256 do arquivo e a conferência com o hash calculado pelo ITI).
+A cada validação o arquivo `Painel de Assinaturas.html` da pasta de saída é atualizado. Ofereça abrir o painel (skill `painel`) quando o usuário quiser ver o conjunto, buscar alguém ou baixar vários documentos.
 
 ## Cuidados
 
