@@ -28,6 +28,16 @@ Rode **em segundo plano** quando houver muitos documentos: cada um leva de algun
 
 Antes de validar arquivo avulso que ainda não está na pasta de entrada, lembre em uma frase que ele será enviado ao ITI, se o usuário ainda não sabe disso.
 
+### Arquivo anexado na conversa
+
+A assinatura digital está nos bytes exatos do arquivo: o ITI precisa receber o **arquivo original**, não o texto nem a imagem dele. Por isso:
+
+- **Com caminho** — menção com `@` (ex.: `@"C:\...\contrato.pdf"`), arquivo arrastado que virou caminho, caminho colado na mensagem, ou anexo que o app salvou em disco e cujo caminho aparece no contexto: confira que o arquivo existe e rode `<cmd> validar "CAMINHO"`. Vários arquivos: um comando por arquivo.
+- **Sem caminho** — o anexo chegou só como conteúdo (texto extraído, páginas como imagem, PDF colado): **não valide e não tente recriar o arquivo** a partir do que você vê; um PDF regravado não tem a assinatura original e o ITI o recusaria (ou, pior, validaria outro arquivo). Explique isso em uma frase e ofereça, com botões se possível:
+  1. colocar o PDF na pasta de entrada (`mostrar-config` mostra qual é) e dizer "valide os documentos assinados" — recomendado, porque também funciona com vários arquivos e pelo Google Drive;
+  2. mencionar o arquivo com `@` ou colar o caminho completo dele no computador.
+- Nunca procure o arquivo pelo nome em pastas do usuário sem que ele peça.
+
 ## 3. Relatar
 
 Apresente uma tabela curta — documento, resultado, signatário(s) — e onde estão os arquivos. Os arquivos ficam em `<saída>/Documentos/`:
