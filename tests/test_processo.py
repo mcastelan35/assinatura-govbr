@@ -53,14 +53,15 @@ def test_lote_separado(pastas, iti_simulado):
     assert iti_simulado.envios == ["Procuração Teste_assinado.pdf"]  # a minuta não vai ao ITI
     docs = saida / processo.PASTA_DOCUMENTOS
     copia = docs / "Procuração Teste_assinado.pdf"
+    relatorio = docs / "Procuração Teste_assinado - Relatório de Conformidade ITI.pdf"
+    assert sorted(p.name for p in docs.iterdir()) == sorted([copia.name, relatorio.name])
     assert copia.read_bytes() == doc.read_bytes()  # cópia íntegra: assinatura preservada
-    assert (docs / "Procuração Teste_assinado - Relatório de Conformidade ITI.pdf").is_file()
-    dossie = docs / "Procuração Teste_assinado - Dossiê de Conformidade.pdf"
-    assert len(PdfReader(dossie).pages) == 1 + 4  # capa + relatório (o documento fica ao lado)
+    assert len(PdfReader(relatorio).pages) == 4  # o relatório do ITI, sem nada acrescentado
 
     resumo = json.loads(next((saida / processo.PASTA_AUDITORIA).glob("*/resumo.json")).read_text("utf-8"))
     assert resumo["hash_confere"] is True
-    assert resumo["arquivos"]["dossie"] == f"{processo.PASTA_DOCUMENTOS}/{dossie.name}"
+    assert resumo["arquivos"] == {"original": f"{processo.PASTA_DOCUMENTOS}/{copia.name}",
+                                  "relatorio": f"{processo.PASTA_DOCUMENTOS}/{relatorio.name}"}
     assert resumo["assinaturas"][0]["emissor"] == "AC Final do Governo Federal do Brasil v1"
 
     with open(saida / processo.NOME_PLANILHA, encoding="utf-8-sig") as f:
@@ -77,11 +78,13 @@ def test_lote_mesclado_remove_campo_de_assinatura(pastas, iti_simulado):
     processo.validar_pasta(entrada, _lote(saida), "mesclado", "portuga", log=lambda *_: None)
 
     docs = list((saida / processo.PASTA_DOCUMENTOS).iterdir())
-    assert [d.name for d in docs] == ["contrato - Dossiê de Conformidade.pdf"]
+    assert [d.name for d in docs] == ["contrato - com Relatório de Conformidade ITI.pdf"]
     leitor = PdfReader(docs[0])
-    assert len(leitor.pages) == 1 + 1 + 4
-    assert [o.title for o in leitor.outline] == ["Capa", "Cópia do documento", "Relatório de Conformidade ITI"]
+    assert len(leitor.pages) == 1 + 4  # documento + relatório, sem capa
+    assert [o.title for o in leitor.outline] == ["Documento assinado", "Relatório de Conformidade ITI"]
     assert b"/ByteRange" not in docs[0].read_bytes()
+    resumo = json.loads(next((saida / processo.PASTA_AUDITORIA).glob("*/resumo.json")).read_text("utf-8"))
+    assert resumo["arquivos"]["mesclado"] == f"{processo.PASTA_DOCUMENTOS}/{docs[0].name}"
     # O original exato fica na auditoria, para o painel e para a cadeia de custódia.
     original = next((saida / processo.PASTA_AUDITORIA).glob("*/original.pdf"))
     assert original.read_bytes() == (entrada / "contrato.pdf").read_bytes()
@@ -95,7 +98,7 @@ def test_com_ressalvas_ganha_sufixo(pastas, iti_simulado):
     [linha] = processo.validar_pasta(entrada, _lote(saida), "separado", "portuga", log=lambda *_: None)
     assert linha["resultado"] == "COM_RESSALVAS"
     nomes = sorted(p.name for p in (saida / processo.PASTA_DOCUMENTOS).iterdir())
-    assert "acordo - Dossiê de Conformidade (COM RESSALVAS).pdf" in nomes
+    assert "acordo - Relatório de Conformidade ITI (COM RESSALVAS).pdf" in nomes
 
 
 @pytest.mark.parametrize("resposta,esperado", [
@@ -125,7 +128,7 @@ def test_homonimos_nao_se_sobrescrevem(tmp_path, iti_simulado):
     processo.validar_pasta(entrada, _lote(saida), "separado", "portuga", recursivo=True, log=lambda *_: None)
     nomes = sorted(p.name for p in (saida / processo.PASTA_DOCUMENTOS).iterdir())
     assert "procuracao.pdf" in nomes and "procuracao (2).pdf" in nomes
-    assert "procuracao (2) - Dossiê de Conformidade.pdf" in nomes
+    assert "procuracao (2) - Relatório de Conformidade ITI.pdf" in nomes
 
 
 # ---------------------------------------------------------------- uso simultâneo

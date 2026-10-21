@@ -34,9 +34,9 @@ def test_coletar(saida_validada):
     dados = painel.coletar(saida, entrada)
     assert len(dados["documentos"]) == 2
     assert dados["fila"] == ["Chegou depois.pdf"]
-    assert dados["arquivos_gerados"] == 6  # 2 × (cópia + relatório + dossiê)
+    assert dados["arquivos_gerados"] == 4  # 2 × (cópia + relatório)
     for d in dados["documentos"]:
-        assert set(d["arquivos"]) == {"original", "relatorio", "dossie"}
+        assert set(d["arquivos"]) == {"original", "relatorio"}
         assert len(d["assinaturas"]) == 2
 
 
@@ -114,20 +114,27 @@ def test_zip_e_download(servidor):
     base, token, _ = servidor
     dados = json.loads(_get(f"{base}/api/dados?t={token}")[1])
     ids = [d["id"] for d in dados["documentos"]]
-    status, corpo, cab = _post(f"{base}/api/zip?t={token}", {"ids": ids, "tipos": ["original", "dossie"]})
+    status, corpo, cab = _post(f"{base}/api/zip?t={token}", {"ids": ids, "tipos": ["original", "relatorio"]})
     assert status == 200 and "attachment" in cab["Content-Disposition"]
     nomes = zipfile.ZipFile(io.BytesIO(corpo)).namelist()
-    assert len(nomes) == 4 and "Contrato A.pdf" in nomes
+    assert sorted(nomes) == ["Contrato A - Relatório de Conformidade ITI.pdf", "Contrato A.pdf",
+                             "Contrato B - Relatório de Conformidade ITI.pdf", "Contrato B.pdf"]
 
-    rel = dados["documentos"][0]["arquivos"]["dossie"]
+    rel = dados["documentos"][0]["arquivos"]["relatorio"]
     status, corpo, cab = _get(f"{base}/f/{urllib.request.quote(rel)}?t={token}&baixar=1")
     assert status == 200 and corpo.startswith(b"%PDF") and cab["Content-Type"] == "application/pdf"
 
 
-def test_dossie_da_pessoa_pelo_servidor(servidor):
-    base, token, saida = servidor
-    nome, cpf = ASSINANTES[1]
-    status, corpo, _ = _post(f"{base}/api/pessoa?t={token}", {"nome": nome, "cpf": cpf})
+def test_zip_de_uma_pessoa_leva_o_nome_dela(servidor):
+    base, token, _ = servidor
+    dados = json.loads(_get(f"{base}/api/dados?t={token}")[1])
+    ids = [d["id"] for d in dados["documentos"]]
+    status, _, cab = _post(f"{base}/api/zip?t={token}",
+                           {"ids": ids, "tipos": ["original", "relatorio"], "titulo": "José Fictício da Silva"})
     assert status == 200
-    arquivo = saida / json.loads(corpo)["arquivo"]
-    assert arquivo.is_file() and arquivo.parent.name == processo.PASTA_PESSOAS
+    assert "Jos%C3%A9%20Fict%C3%ADcio%20da%20Silva%20-%202%20documentos" in cab["Content-Disposition"]
+
+
+def test_api_de_dossie_por_pessoa_foi_removida(servidor):
+    base, token, _ = servidor
+    assert _post(f"{base}/api/pessoa?t={token}", {"nome": ASSINANTES[0][0]})[0] == 404

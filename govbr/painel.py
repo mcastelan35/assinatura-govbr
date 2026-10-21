@@ -5,7 +5,7 @@ Funciona de dois jeitos, com o mesmo HTML:
   validação. Abre em qualquer computador que veja a pasta (ex.: Google Drive),
   com os links relativos aos arquivos. Somente leitura.
 - servidor local (comando `painel`): 127.0.0.1, protegido por token. Acrescenta
-  download em lote (.zip), dossiê por pessoa, abrir pastas e validar novos.
+  download em lote (.zip, inclusive tudo de uma pessoa), abrir pastas e validar novos.
 """
 
 import datetime as dt
@@ -103,10 +103,8 @@ def coletar(saida, entrada=None, recursivo=False):
     fila = None
     if entrada and Path(entrada).is_dir():
         fila = [p.name for p, _ in processo.pendentes(entrada, saida, recursivo)]
-    gerados = sum(
-        1 for pasta in (processo.PASTA_DOCUMENTOS, processo.PASTA_PESSOAS)
-        if (saida / pasta).is_dir() for p in (saida / pasta).iterdir() if p.is_file()
-    )
+    pasta_docs = saida / processo.PASTA_DOCUMENTOS
+    gerados = sum(1 for p in pasta_docs.iterdir() if p.is_file()) if pasta_docs.is_dir() else 0
     return {
         "versao": VERSAO,
         "gerado_em": dt.datetime.now().isoformat(timespec="seconds"),
@@ -137,34 +135,6 @@ def escrever_estatico(saida, entrada=None, recursivo=False):
 
 
 # ---------------------------------------------------------------- ações
-
-
-def _pessoa_docs(dados, nome, cpf):
-    return [
-        d for d in dados["documentos"]
-        if any((a.get("nome") or "").upper() == nome.upper() and (a.get("cpf") or "") == (cpf or "")
-               for a in d["assinaturas"])
-    ]
-
-
-def gerar_dossie_pessoa(saida, nome, cpf):
-    from .dossie import montar_dossie_pessoa, nome_proprio
-
-    saida = Path(saida)
-    dados = coletar(saida)
-    itens = []
-    for d in sorted(_pessoa_docs(dados, nome, cpf), key=lambda d: d.get("validado_em") or ""):
-        if d["arquivos"].get("dossie"):
-            resumo = json.loads((saida / d["auditoria"] / "resumo.json").read_text(encoding="utf-8"))
-            itens.append((resumo, saida / d["arquivos"]["dossie"]))
-    if not itens:
-        raise ValueError("Nenhum dossiê disponível para esta pessoa.")
-    pasta = saida / processo.PASTA_PESSOAS
-    pasta.mkdir(parents=True, exist_ok=True)
-    digitos = "".join(c for c in (cpf or "") if c.isdigit())
-    destino = pasta / processo.nome_arquivo(f"{nome_proprio(nome)}{' - ' + digitos if digitos else ''} - Dossiê.pdf")
-    montar_dossie_pessoa(nome, cpf, itens, destino)
-    return destino
 
 
 def abrir_no_sistema(caminho, selecionar=False):
@@ -340,14 +310,11 @@ def _criar_handler(painel, servidor_ref):
                         return self._json({"erro": "Pasta de entrada não configurada."}, 400)
                     return self._json({"iniciado": painel.validar()})
                 if url.path == "/api/zip":
-                    conteudo, n = painel.zip(corpo.get("ids") or [], corpo.get("tipos") or ["original", "dossie"])
-                    nome = f"Assinaturas - {n} documento{'s' if n != 1 else ''} - {dt.date.today():%Y-%m-%d}.zip"
+                    conteudo, n = painel.zip(corpo.get("ids") or [], corpo.get("tipos") or ["original", "relatorio"])
+                    prefixo = processo.nome_arquivo(corpo.get("titulo") or "Assinaturas")
+                    nome = f"{prefixo} - {n} documento{'s' if n != 1 else ''} - {dt.date.today():%Y-%m-%d}.zip"
                     return self._resposta(200, conteudo, "application/zip",
                                           {"Content-Disposition": _cabecalho_anexo(nome)})
-                if url.path == "/api/pessoa":
-                    destino = gerar_dossie_pessoa(painel.saida, corpo.get("nome") or "", corpo.get("cpf") or "")
-                    return self._json({"arquivo": destino.relative_to(painel.saida).as_posix(),
-                                       "nome": destino.name})
                 if url.path == "/api/abrir":
                     alvo = corpo.get("alvo")
                     if alvo == "saida":

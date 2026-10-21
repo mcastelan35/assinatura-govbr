@@ -1,6 +1,6 @@
 """Validação de assinaturas GOV.BR / ICP-Brasil pelo VALIDAR do ITI."""
 
-VERSAO = "1.2.0"
+VERSAO = "1.3.0"
 CREDITO = "Desenvolvido por Claude para Advogados"
 CONTATO_URL = "https://www.instagram.com/advvilasboas/"
 CONTATO_ROTULO = "@advvilasboas"

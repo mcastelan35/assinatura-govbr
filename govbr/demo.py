@@ -57,8 +57,8 @@ def _pdf_simples(titulo, linhas, marca="DEMONSTRAÇÃO"):
     return buf.getvalue()
 
 
-def criar(saida, quantidade=26, semente=7):
-    from .dossie import montar_dossie
+def criar(saida, quantidade=26, semente=7, modo="separado"):
+    from .mesclagem import mesclar
 
     rnd = random.Random(semente)
     saida = Path(saida)
@@ -108,7 +108,7 @@ def criar(saida, quantidade=26, semente=7):
             "assinaturas": assinaturas if resultado != "SEM_ASSINATURA_RECONHECIDA" else [],
             "iti": {"verificador": "Verificador de Conformidade 2.32.1",
                     "validador": "Validador de Documentos 3.5.2", "tipo_arquivo": "PDF"},
-            "modo": "separado", "demonstracao": True,
+            "modo": modo, "demonstracao": True,
         }
         arquivos = {"original": f"{processo.PASTA_AUDITORIA}/{pasta.name}/original.pdf"}
         if resultado == "SEM_ASSINATURA_RECONHECIDA":
@@ -118,15 +118,18 @@ def criar(saida, quantidade=26, semente=7):
             rel.write_bytes(_pdf_simples("Relatório de conformidade (demonstração)", [
                 "Este não é um relatório do ITI.", f"Arquivo: {nome}.pdf", f"SHA-256: {h[:32]}…"]))
             sufixo = "" if resultado == "APROVADO" else " (COM RESSALVAS)"
-            copia = docs / f"{nome}.pdf"
-            copia.write_bytes(original)
-            rel_vis = docs / f"{nome} - {processo.NOME_RELATORIO}{sufixo}.pdf"
-            rel_vis.write_bytes(rel.read_bytes())
-            dossie = docs / f"{nome} - {processo.NOME_DOSSIE}{sufixo}.pdf"
-            montar_dossie(resumo, None, rel, dossie)
-            arquivos.update(original=f"{processo.PASTA_DOCUMENTOS}/{copia.name}",
-                            relatorio=f"{processo.PASTA_DOCUMENTOS}/{rel_vis.name}",
-                            dossie=f"{processo.PASTA_DOCUMENTOS}/{dossie.name}")
+            arquivos["relatorio"] = f"{processo.PASTA_AUDITORIA}/{pasta.name}/{rel.name}"
+            if modo == "mesclado":
+                mesclado = docs / f"{nome} - com {processo.NOME_RELATORIO}{sufixo}.pdf"
+                mesclar(pasta / "original.pdf", rel, mesclado, f"{nome}.pdf")
+                arquivos["mesclado"] = f"{processo.PASTA_DOCUMENTOS}/{mesclado.name}"
+            else:
+                copia = docs / f"{nome}.pdf"
+                copia.write_bytes(original)
+                rel_vis = docs / f"{nome} - {processo.NOME_RELATORIO}{sufixo}.pdf"
+                rel_vis.write_bytes(rel.read_bytes())
+                arquivos.update(original=f"{processo.PASTA_DOCUMENTOS}/{copia.name}",
+                                relatorio=f"{processo.PASTA_DOCUMENTOS}/{rel_vis.name}")
         resumo["arquivos"] = arquivos
         (pasta / "resumo.json").write_text(json.dumps(resumo, ensure_ascii=False, indent=2), encoding="utf-8")
         registro[h] = {"arquivo": resumo["arquivo"], "resultado": resultado,

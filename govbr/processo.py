@@ -4,10 +4,9 @@ Pasta de saída:
     Painel de Assinaturas.html     painel (gerado a cada validação)
     Validações.csv                 histórico, abre no Excel
     Documentos/                    o que o usuário usa no dia a dia
-        <nome>.pdf                                  cópia íntegra (modo separado)
-        <nome> - Relatório de Conformidade ITI.pdf  relatório oficial (modo separado)
-        <nome> - Dossiê de Conformidade.pdf         capa + [documento] + relatório
-    Dossiês por pessoa/            gerados sob demanda, pelo painel ou pela linha de comando
+        <nome>.pdf                                       cópia íntegra (modo separado)
+        <nome> - Relatório de Conformidade ITI.pdf       relatório oficial (modo separado)
+        <nome> - com Relatório de Conformidade ITI.pdf   documento + relatório (modo mesclado)
     _auditoria/<doc>_<data-hora>/  respostas do ITI, original enviado e resumo.json
 """
 
@@ -25,10 +24,8 @@ from pathlib import Path
 from . import iti
 
 PASTA_DOCUMENTOS = "Documentos"
-PASTA_PESSOAS = "Dossiês por pessoa"
 PASTA_AUDITORIA = "_auditoria"
 NOME_RELATORIO = "Relatório de Conformidade ITI"
-NOME_DOSSIE = "Dossiê de Conformidade"
 NOME_PLANILHA = "Validações.csv"
 PAUSA_LOTE = 2  # segundos entre documentos, para não sobrecarregar o serviço público
 
@@ -194,11 +191,10 @@ def processar(assinatura, destacado=None, auditoria=Path("."), idioma="portuga")
 def entregar(original, resumo, relatorio, pasta_aud, saida, modo, destacado=None):
     """Gera os arquivos finais em saida/Documentos. Retorna (arquivos, gerados).
 
-    arquivos: caminhos relativos à saída para original, relatório e dossiê
-    (o painel usa estes caminhos); gerados: nomes dos arquivos novos visíveis.
+    arquivos: caminhos relativos à saída para original, relatório e, no modo
+    mesclado, o PDF mesclado (o painel usa estes caminhos); gerados: nomes dos
+    arquivos novos visíveis.
     """
-    from .dossie import montar_dossie
-
     def rel(p):
         return p.relative_to(saida).as_posix()
 
@@ -211,26 +207,25 @@ def entregar(original, resumo, relatorio, pasta_aud, saida, modo, destacado=None
     docs.mkdir(parents=True, exist_ok=True)
     rotulo = ROTULOS.get(resumo["resultado"], resumo["resultado"])
     sufixo = f" ({rotulo})" if rotulo else ""
-    gerados = []
+    base = nome_arquivo(original.stem)
 
-    if modo == "separado":
-        copia = destino_livre(docs, nome_arquivo(original.stem) + original.suffix)
-        shutil.copy2(original, copia)
-        # O relatório e o dossiê acompanham o nome da cópia (inclusive o "(2)" de homônimos).
-        rel_vis = destino_livre(docs, f"{copia.stem} - {NOME_RELATORIO}{sufixo}.pdf")
-        shutil.copy2(relatorio, rel_vis)
-        arquivos.update(original=rel(copia), relatorio=rel(rel_vis))
-        gerados += [copia.name, rel_vis.name]
-        raiz, incluir_documento = copia.stem, False
-    else:
-        raiz = nome_arquivo(original.stem)
-        incluir_documento = original.suffix.lower() == ".pdf" and not destacado
+    # Só dá para mesclar quando o próprio arquivo é o PDF assinado; assinatura
+    # destacada (.p7s etc.) cai no formato separado.
+    if modo == "mesclado" and original.suffix.lower() == ".pdf" and not destacado:
+        from .mesclagem import mesclar
 
-    dossie = destino_livre(docs, f"{raiz} - {NOME_DOSSIE}{sufixo}.pdf")
-    montar_dossie(resumo, original if incluir_documento else None, relatorio, dossie)
-    arquivos["dossie"] = rel(dossie)
-    gerados.append(dossie.name)
-    return arquivos, gerados
+        destino = destino_livre(docs, f"{base} - com {NOME_RELATORIO}{sufixo}.pdf")
+        mesclar(original, relatorio, destino)
+        arquivos["mesclado"] = rel(destino)
+        return arquivos, [destino.name]
+
+    copia = destino_livre(docs, base + original.suffix)
+    shutil.copy2(original, copia)
+    # O relatório acompanha o nome da cópia (inclusive o "(2)" de homônimos).
+    rel_vis = destino_livre(docs, f"{copia.stem} - {NOME_RELATORIO}{sufixo}.pdf")
+    shutil.copy2(relatorio, rel_vis)
+    arquivos.update(original=rel(copia), relatorio=rel(rel_vis))
+    return arquivos, [copia.name, rel_vis.name]
 
 
 # ---------------------------------------------------------------- lote, registro e planilha

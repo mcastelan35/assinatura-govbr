@@ -40,8 +40,8 @@ Num único `AskUserQuestion`, faça as três perguntas:
 1. **"Onde você vai colocar os documentos assinados para validar?"** — uma opção por sugestão (rótulo curto como "Drive compartilhado: Escritório", "Meu Drive", "Somente este computador"), a recomendada primeiro, mais "Escolher numa janela". O usuário pode digitar outro caminho em "Outro".
 2. **"Onde os relatórios e o painel devem ficar?"** — as mesmas origens, apontando para a `saida` sugerida. Recomende o mesmo lugar escolhido na pergunta 1.
 3. **"Como você quer o Relatório de Conformidade do ITI?"**
-   - "Separado" (recomendado) — em `Documentos/` ficam a cópia intacta do documento assinado (a assinatura digital continua válida), o relatório oficial do ITI e o Dossiê de Conformidade (capa-resumo + relatório).
-   - "Mesclado" — um PDF só por documento: o Dossiê de Conformidade com capa, cópia do documento e relatório, com marcadores para navegar. Prático para protocolar, mas esse arquivo **não carrega a assinatura digital** (qualquer alteração num PDF assinado a invalida); a prova está no relatório, e o original fica intacto na pasta de entrada e em `_auditoria`.
+   - "Separado" (recomendado) — em `Documentos/` ficam a cópia intacta do documento assinado (a assinatura digital continua válida) e, ao lado, o relatório oficial do ITI com o mesmo nome.
+   - "Mesclado" — um PDF só por documento: o documento assinado seguido do relatório oficial do ITI, com marcadores para navegar. Prático para protocolar, mas esse arquivo **não carrega a assinatura digital** (qualquer alteração num PDF assinado a invalida); a prova está no relatório, e o original fica intacto na pasta de entrada e em `_auditoria`.
 
 Para "Escolher numa janela", rode `<cmd> escolher-pasta --titulo "Pasta dos documentos assinados"` (ou "Pasta de saída") com tempo limite longo. A janela pode abrir atrás de outras; no Windows, procure na barra de tarefas. A saída é o caminho escolhido, ou `CANCELADO`.
 

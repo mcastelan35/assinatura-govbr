@@ -1,7 +1,7 @@
 {
   "name": "assinatura-govbr",
-  "version": "1.2.0",
-  "description": "Valida automaticamente documentos assinados via GOV.BR ou ICP-Brasil no VALIDAR do ITI e entrega o Relatório de Conformidade oficial e o Dossiê de Conformidade, com painel de métricas, busca de pessoas e downloads em lote. Pastas no Google Drive. Desenvolvido por Claude para Advogados.",
+  "version": "1.3.0",
+  "description": "Valida automaticamente documentos assinados via GOV.BR ou ICP-Brasil no VALIDAR do ITI e entrega o Relatório de Conformidade oficial, separado ou mesclado ao documento, com painel de métricas, busca de pessoas e downloads em lote. Pastas no Google Drive. Desenvolvido por Claude para Advogados.",
   "author": {
     "name": "Claude para Advogados",
     "url": "https://www.instagram.com/advvilasboas/"
@@ -15,7 +15,6 @@
     "iti",
     "validar",
     "relatório de conformidade",
-    "dossiê",
     "google drive",
     "advocacia",
     "jurídico"

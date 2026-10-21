@@ -3,8 +3,8 @@
 Validador automático de assinaturas GOV.BR / ICP-Brasil pelo VALIDAR do ITI.
 
 Envia os documentos assinados ao validar.iti.gov.br, guarda as respostas do ITI
-para auditoria e entrega o Relatório de Conformidade oficial e o Dossiê de
-Conformidade (capa-resumo + relatório), com um painel para consultar tudo.
+para auditoria e entrega o Relatório de Conformidade oficial — separado do
+documento ou mesclado a ele —, com um painel para consultar tudo.
 
 ATENÇÃO: usa a API interna do portal VALIDAR (não documentada pelo ITI). Pode
 mudar sem aviso. Ao usar, você aceita os termos do VALIDAR (Portaria ITI nº 22/2023).
@@ -19,7 +19,6 @@ Comandos:
     validar ARQUIVO              valida um arquivo avulso
     painel                       abre o painel (servidor local, com downloads em lote)
     painel --estatico            só regrava "Painel de Assinaturas.html" na saída
-    dossie-pessoa NOME [--cpf]   junta os dossiês de uma pessoa num PDF
     demo [--pasta P]             painel com dados fictícios
 
 Códigos de saída do comando validar:
@@ -27,7 +26,7 @@ Códigos de saída do comando validar:
     1  algum documento com ressalvas ou sem assinatura reconhecida
     2  erro (rede, VALIDAR fora do ar, configuração ou arquivo inválido)
 
-Dependências: Python 3.9+, pypdf e reportlab (o uv instala sozinho).
+Dependências: Python 3.9+ e pypdf; reportlab só para o comando demo (o uv instala sozinho).
 """
 
 import argparse
@@ -48,8 +47,8 @@ def _mostrar(cfg, caminho):
     print(f"  Pasta de entrada (documentos assinados): {cfg['entrada']}")
     print(f"  Pasta de saída (relatórios e painel):    {cfg['saida']}")
     print(f"  Modo: {cfg['modo']}" + (
-        " (dossiê com capa + documento + relatório num PDF só)" if cfg["modo"] == "mesclado"
-        else " (cópia do documento, relatório do ITI e dossiê em arquivos separados)"
+        " (documento assinado + relatório do ITI num PDF só)" if cfg["modo"] == "mesclado"
+        else " (cópia do documento e relatório do ITI em arquivos separados)"
     ))
     print(f"  Subpastas da entrada: {'sim' if cfg.get('recursivo') else 'não'}")
     print(f"  Arquivo de configuração: {caminho}")
@@ -138,7 +137,7 @@ def cmd_escolher_pasta(args):
 def cmd_diagnostico(args):
     ok = True
     print(f"assinatura-govbr {VERSAO} · Python {sys.version.split()[0]}")
-    for pacote, uso in (("pypdf", "dossiês e modo mesclado"), ("reportlab", "capa do dossiê")):
+    for pacote, uso in (("pypdf", "modo mesclado"), ("reportlab", "dados de demonstração")):
         try:
             modulo = __import__(pacote)
             print(f"{pacote} {getattr(modulo, '__version__', getattr(modulo, 'Version', ''))}: ok")
@@ -264,40 +263,15 @@ def cmd_painel(args):
     return 0
 
 
-def cmd_dossie_pessoa(args):
-    from govbr import painel
-
-    cfg = config.ler_config() or {}
-    saida = args.saida or cfg.get("saida")
-    if not saida:
-        _abortar("pasta de saída não configurada.")
-    dados = painel.coletar(saida)
-    alvo = args.nome.strip().upper()
-    candidatos = {}
-    for d in dados["documentos"]:
-        for a in d["assinaturas"]:
-            if alvo in (a.get("nome") or "").upper() and (not args.cpf or args.cpf in (a.get("cpf") or "")):
-                candidatos[(a["nome"], a.get("cpf") or "")] = candidatos.get((a["nome"], a.get("cpf") or ""), 0) + 1
-    if not candidatos:
-        _abortar(f"ninguém encontrado com '{args.nome}'.")
-    if len(candidatos) > 1:
-        print("Mais de uma pessoa encontrada; refine com o nome completo ou --cpf:")
-        for (nome, cpf), n in sorted(candidatos.items()):
-            print(f"  - {nome} ({cpf or 'sem CPF'}): {n} documento(s)")
-        return 1
-    (nome, cpf), _ = next(iter(candidatos.items()))
-    destino = painel.gerar_dossie_pessoa(saida, nome, cpf)
-    print(f"Dossiê gerado: {destino}")
-    return 0
-
-
 def cmd_demo(args):
     from govbr import demo, painel
 
+    # A demonstração segue o formato escolhido na configuração (separado ou mesclado).
+    modo = args.modo or (config.ler_config() or {}).get("modo") or "separado"
     base = Path(args.pasta) if args.pasta else Path(tempfile.mkdtemp(prefix="assinatura-govbr-demo-"))
-    saida, entrada = demo.criar(base / "Validados (demonstração)")
+    saida, entrada = demo.criar(base / "Validados (demonstração)", modo=modo)
     print(f"Dados fictícios criados em: {base}")
-    cfg = {"saida": str(saida), "entrada": str(entrada), "modo": "separado"}
+    cfg = {"saida": str(saida), "entrada": str(entrada), "modo": modo}
     painel.escrever_estatico(saida, entrada)
     if args.estatico:
         print(f"Painel: {saida / painel.NOME_PAINEL}")
@@ -361,14 +335,9 @@ def main():
     p.add_argument("--entrada", help="pasta de entrada, quando --saida é informada")
     p.set_defaults(func=cmd_painel)
 
-    p = sub.add_parser("dossie-pessoa", help="junta num PDF os dossiês de uma pessoa")
-    p.add_argument("nome", help="nome (ou parte dele) do signatário")
-    p.add_argument("--cpf", help="dígitos visíveis do CPF, para desempatar homônimos")
-    p.add_argument("--saida", help="sobrepõe a pasta de saída configurada")
-    p.set_defaults(func=cmd_dossie_pessoa)
-
     p = sub.add_parser("demo", help="painel com dados fictícios")
     p.add_argument("--pasta", help="onde criar os dados (padrão: pasta temporária)")
+    p.add_argument("--modo", choices=config.MODOS, help="padrão: o da configuração")
     p.add_argument("--estatico", action="store_true")
     p.add_argument("--sem-abrir", action="store_true")
     p.add_argument("--porta", type=int, default=0)

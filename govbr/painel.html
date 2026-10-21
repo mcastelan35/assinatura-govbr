@@ -561,7 +561,7 @@ function renderTopo() {
   meta.push(`<span>Pasta de saída <b>${esc(DADOS.saida_nome)}</b></span>`);
   meta.push(`<span title="${esc(fmtData(gerado, true))}">Atualizado ${esc(fmtRelativo(gerado))}</span>`);
   if (DOCS.some((d) => d.demo)) meta.push(`<span class="selo">Dados de demonstração</span>`);
-  if (!SERV) meta.push(`<span class="selo" title="Aberto direto da pasta. Para baixar em lote, gerar dossiê por pessoa e validar novos documentos, peça ao Claude: “abra o painel de assinaturas”.">Somente leitura</span>`);
+  if (!SERV) meta.push(`<span class="selo" title="Aberto direto da pasta. Para baixar em lote e validar novos documentos, peça ao Claude: “abra o painel de assinaturas”.">Somente leitura</span>`);
   $("#meta").innerHTML = meta.join("");
 
   const acoes = [];
@@ -618,7 +618,7 @@ function renderIndicadores() {
     { rot: "Com ressalvas", ponto: "alerta", num: c.alerta, sub: c.alerta ? "Indeterminadas ou reprovadas" : "Nenhuma pendência" },
     { rot: "Sem assinatura", ponto: "grave", num: c.grave + c.neutro, sub: `${fmtN(c.grave)} não reconhecidas · ${fmtN(c.neutro)} não enviados` },
     { rot: "Pessoas", num: pessoas, sub: `${fmtN(assinaturas)} assinaturas analisadas` },
-    { rot: "Arquivos gerados", num: DADOS.arquivos_gerados, sub: "Cópias, relatórios e dossiês" },
+    { rot: "Arquivos gerados", num: DADOS.arquivos_gerados, sub: "Documentos e relatórios do ITI" },
   ];
   $("#indicadores").innerHTML = ind.map((i) => `
     <div class="ind">
@@ -741,9 +741,10 @@ function botoesArquivo(d) {
     return `<a class="arq" href="${esc(href)}" ${SERV ? "" : 'target="_blank" rel="noopener"'} title="${SERV ? "Baixar" : "Abrir"} ${esc(rotulo.toLowerCase())}" data-parar>${icone(icon)}<span class="rot-arq">${rotulo}</span></a>`;
   };
   const stem = (d.arquivo || "documento").replace(/\.[^.]+$/, "");
-  return item("original", "Original", "doc", d.arquivo) +
-    item("relatorio", "Relatório", "selo", `${stem} - Relatório de Conformidade ITI.pdf`) +
-    item("dossie", "Dossiê", "pasta-doc");
+  // Documentos do modo mesclado mostram o PDF mesclado; os do modo separado, o relatório avulso.
+  return item("original", "Original", "doc", d.arquivo) + (d.arquivos.mesclado
+    ? item("mesclado", "Mesclado", "pasta-doc")
+    : item("relatorio", "Relatório", "selo", `${stem} - Relatório de Conformidade ITI.pdf`));
 }
 
 function cabecalho(campo, rotulo, chaveOrdem = "ordem", classe = "") {
@@ -825,7 +826,7 @@ function renderPessoas() {
           <td class="data-cel col-validado">${esc(fmtData(p.ultima))}</td>
           <td><div class="arquivos-cel">
             <button class="arq" type="button" data-ver-docs="${esc(p.chave)}" data-parar>${icone("doc")}<span class="rot-arq">Documentos</span></button>
-            ${SERV ? `<button class="arq" type="button" data-dossie-pessoa="${esc(p.chave)}" data-parar>${icone("pasta-doc")}<span class="rot-arq">Dossiê da pessoa</span></button>` : ""}
+            ${SERV ? `<button class="arq" type="button" data-zip-pessoa="${esc(p.chave)}" data-parar>${icone("baixar")}<span class="rot-arq">Baixar tudo (.zip)</span></button>` : ""}
           </div></td>
         </tr>`).join("")}</tbody>
     </table></div>
@@ -842,18 +843,18 @@ function renderLote() {
   const n = estado.sel.size;
   el.innerHTML = `<b>${fmtN(n)} selecionado${n === 1 ? "" : "s"}</b><span class="espaco"></span>
     <button class="botao" type="button" data-zip="original">${icone("baixar")} Originais</button>
-    <button class="botao" type="button" data-zip="dossie">${icone("baixar")} Dossiês</button>
+    <button class="botao" type="button" data-zip="relatorio">${icone("baixar")} Relatórios</button>
     <button class="botao primario" type="button" data-zip="tudo">${icone("baixar")} Tudo (.zip)</button>
     <button class="link-discreto" type="button" id="limpar-sel">Limpar seleção</button>`;
   el.classList.add("vis");
   $("#limpar-sel").onclick = () => { estado.sel.clear(); renderDocumentos(); renderLote(); };
 }
 
-async function baixarZip(tipo) {
-  const tipos = tipo === "tudo" ? ["original", "relatorio", "dossie"] : [tipo];
+async function baixarZip(tipo, ids = [...estado.sel], titulo) {
+  const tipos = { tudo: ["original", "relatorio", "mesclado"], pessoa: ["original", "relatorio"] }[tipo] || [tipo];
   toast("Preparando o arquivo .zip…");
   try {
-    const r = await api("/api/zip", { ids: [...estado.sel], tipos });
+    const r = await api("/api/zip", { ids, tipos, titulo });
     if (!r.ok) throw new Error();
     const blob = await r.blob();
     const nome = decodeURIComponent((/filename\*=UTF-8''([^;]+)/.exec(r.headers.get("Content-Disposition") || "") || [])[1] || "assinaturas.zip");
@@ -920,8 +921,8 @@ function abrirDocumento(id) {
     </div>`;
   }).join("");
   const arquivos = [
-    itemArquivo(d, "dossie", "Dossiê de Conformidade", "Capa-resumo e relatório oficial do ITI"),
-    itemArquivo(d, "original", "Documento original", d.modo === "mesclado" ? "Cópia exata do arquivo enviado ao ITI" : undefined),
+    itemArquivo(d, "mesclado", "Documento + relatório (mesclado)", "Cópia do documento seguida do relatório oficial do ITI"),
+    itemArquivo(d, "original", "Documento original assinado", d.arquivos.mesclado ? "Cópia exata do arquivo enviado ao ITI, com a assinatura válida" : undefined),
     itemArquivo(d, "relatorio", "Relatório de Conformidade do ITI"),
   ].join("");
   abrirLateral(`
@@ -967,8 +968,8 @@ function abrirPessoa(chave) {
       ${botaoFechar}
     </div>
     <div class="lateral-corpo">
-      ${SERV ? `<div class="bloco"><button class="botao primario" type="button" data-dossie-pessoa="${esc(chave)}">${icone("pasta-doc")} Gerar dossiê desta pessoa</button>
-        <p class="conclusao" style="font-size:12.5px;margin-top:8px">Junta os dossiês de todos os documentos assinados por esta pessoa num PDF só, com uma capa-resumo.</p></div>` : ""}
+      ${SERV ? `<div class="bloco"><button class="botao primario" type="button" data-zip-pessoa="${esc(chave)}">${icone("baixar")} Baixar documentos desta pessoa (.zip)</button>
+        <p class="conclusao" style="font-size:12.5px;margin-top:8px">Os documentos originais assinados por esta pessoa e os relatórios de conformidade do ITI, num arquivo só.</p></div>` : ""}
       <div class="bloco"><h4>Documentos assinados</h4>
         ${docs.map((d) => {
           const a = d.assinaturas.find((x) => `${norm(x.nome)}|${x.cpf || ""}` === chave);
@@ -982,20 +983,9 @@ function abrirPessoa(chave) {
     </div>`);
 }
 
-async function dossiePessoa(chave, botao) {
+function zipPessoa(chave) {
   const p = PESSOA_POR_CHAVE.get(chave);
-  if (!p) return;
-  if (botao) botao.disabled = true;
-  toast("Montando o dossiê…");
-  try {
-    const r = await api("/api/pessoa", { nome: p.nome, cpf: p.cpf || "" });
-    const j = await r.json();
-    if (!r.ok) throw new Error(j.erro);
-    location.href = url(j.arquivo, { baixar: true });
-    toast("Dossiê gerado em “Dossiês por pessoa”.");
-    atualizarDados(true);
-  } catch (e) { toast(e.message || "Não foi possível gerar o dossiê."); }
-  finally { if (botao) botao.disabled = false; }
+  if (p) baixarZip("pessoa", p.docs.map((d) => d.id), nomeProprio(p.nome));
 }
 
 /* ------------------------------------------------ servidor: ações */
@@ -1088,7 +1078,7 @@ document.addEventListener("click", (ev) => {
     $("#busca").value = estado.q;
     return trocarAba("documentos");
   }
-  if (t.matches("[data-dossie-pessoa]")) return dossiePessoa(t.dataset.dossiePessoa, t);
+  if (t.matches("[data-zip-pessoa]")) return zipPessoa(t.dataset.zipPessoa);
   if (t.matches("[data-pessoa-lateral]")) return abrirPessoa(t.dataset.pessoaLateral);
   if (t.matches("[data-mostrar]")) return abrirNoSistema(t.dataset.mostrar);
   if (t.matches("[data-copiar]")) {
