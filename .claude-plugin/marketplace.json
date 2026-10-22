@@ -7,14 +7,14 @@
   },
   "metadata": {
     "description": "Validação de assinaturas GOV.BR e ICP-Brasil para advogados no Claude Code. Desenvolvido por Claude para Advogados.",
-    "version": "1.3.1"
+    "version": "1.3.2"
   },
   "plugins": [
     {
       "name": "assinatura-govbr",
       "source": "./",
       "description": "Valida automaticamente documentos assinados via GOV.BR ou ICP-Brasil no VALIDAR do ITI e entrega o Relatório de Conformidade oficial, separado ou mesclado ao documento, com painel de métricas, busca de pessoas e downloads em lote. Pastas no Google Drive.",
-      "version": "1.3.1",
+      "version": "1.3.2",
       "author": {
         "name": "Claude para Advogados",
         "url": "https://www.instagram.com/advvilasboas/"

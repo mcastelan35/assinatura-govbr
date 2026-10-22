@@ -43,27 +43,44 @@ def pdf_simples(texto="Documento de teste", paginas=1):
     return buf.getvalue()
 
 
-def pdf_assinado(caminho, texto="Documento assinado de teste"):
-    """PDF com campo de assinatura (/FT /Sig e /ByteRange), como os do GOV.BR.
+SELO = "SELO GOVBR DE TESTE"
+
+
+def pdf_assinado(caminho, texto="Documento assinado de teste", visivel=True):
+    """PDF com campo de assinatura (/FT /Sig, /ByteRange e selo visível), como os do GOV.BR.
 
     A assinatura não é criptograficamente válida: serve para o pré-filtro
-    local e para conferir que a mesclagem remove o campo.
+    local e para conferir que a mesclagem estampa o selo e remove o campo.
     """
     from pypdf import PdfReader, PdfWriter
-    from pypdf.generic import ArrayObject, DictionaryObject, NameObject, NumberObject, TextStringObject
+    from pypdf.generic import (ArrayObject, DecodedStreamObject, DictionaryObject, FloatObject,
+                               NameObject, NumberObject, TextStringObject)
 
     w = PdfWriter(clone_from=PdfReader(io.BytesIO(pdf_simples(texto))))
     valor = w._add_object(DictionaryObject({
         NameObject("/Type"): NameObject("/Sig"),
         NameObject("/ByteRange"): ArrayObject([NumberObject(0)] * 4),
     }))
+    fonte = w._add_object(DictionaryObject({
+        NameObject("/Type"): NameObject("/Font"), NameObject("/Subtype"): NameObject("/Type1"),
+        NameObject("/BaseFont"): NameObject("/Helvetica"),
+    }))
+    aparencia = DecodedStreamObject()
+    aparencia.set_data(f"BT /F1 10 Tf 5 8 Td ({SELO}) Tj ET".encode())
+    aparencia.update({
+        NameObject("/Type"): NameObject("/XObject"), NameObject("/Subtype"): NameObject("/Form"),
+        NameObject("/BBox"): ArrayObject([FloatObject(0), FloatObject(0), FloatObject(160), FloatObject(30)]),
+        NameObject("/Resources"): DictionaryObject({NameObject("/Font"): DictionaryObject({NameObject("/F1"): fonte})}),
+    })
+    retangulo = [300, 150, 460, 180] if visivel else [0, 0, 0, 0]
     widget = w._add_object(DictionaryObject({
         NameObject("/Type"): NameObject("/Annot"),
         NameObject("/Subtype"): NameObject("/Widget"),
         NameObject("/FT"): NameObject("/Sig"),
         NameObject("/T"): TextStringObject("Assinatura1"),
-        NameObject("/Rect"): ArrayObject([NumberObject(0)] * 4),
+        NameObject("/Rect"): ArrayObject([NumberObject(v) for v in retangulo]),
         NameObject("/V"): valor,
+        NameObject("/AP"): DictionaryObject({NameObject("/N"): w._add_object(aparencia)}),
     }))
     w.pages[0][NameObject("/Annots")] = ArrayObject([widget])
     w._root_object[NameObject("/AcroForm")] = DictionaryObject({NameObject("/Fields"): ArrayObject([widget])})
